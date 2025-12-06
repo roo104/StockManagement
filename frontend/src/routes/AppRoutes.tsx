@@ -1,14 +1,12 @@
 import React from 'react';
 import {Navigate, Route, Routes} from 'react-router-dom';
-import StockPage from '../pages/StockPage/StockPage';
 import FundamentalAnalysisPage from '../pages/FundamentalAnalysisPage/FundamentalAnalysisPage';
 import WatchlistPage from '../pages/WatchlistPage/WatchlistPage';
 
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/stocks" replace />} />
-      <Route path="/stocks" element={<StockPage />} />
+      <Route path="/" element={<Navigate to="/fundamental" replace />} />
       <Route path="/fundamental" element={<FundamentalAnalysisPage />} />
       <Route path="/watchlist" element={<WatchlistPage />} />
       {/* Add more routes here as you build new pages */}

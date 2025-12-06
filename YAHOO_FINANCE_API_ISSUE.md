@@ -78,7 +78,7 @@ Example implementation would require:
 
 ## Code Locations
 
-- Backend service: `src/main/kotlin/jp/stocks/service/YahooFinanceFundamentalService.kt`
+- Backend service: `src/main/kotlin/jp/stocks/service/FundamentalDataFetchService.kt`
 - Frontend UI: `frontend/src/pages/FundamentalAnalysisPage/FundamentalAnalysisPage.tsx`
 - API endpoints: `src/main/kotlin/jp/stocks/controller/FundamentalAnalysisController.kt`
 

@@ -1,6 +1,7 @@
 package jp.stocks.controller
 
 import jp.stocks.model.entity.StockWatchlistEntity
+import jp.stocks.service.FundamentalDataFetchService
 import jp.stocks.service.StockWatchlistService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -8,7 +9,8 @@ import org.springframework.web.bind.annotation.*
 @RestController
 @RequestMapping("/api/watchlist")
 class StockWatchlistController(
-    private val stockWatchlistService: StockWatchlistService
+    private val stockWatchlistService: StockWatchlistService,
+    private val yahooFinanceFundamentalService: FundamentalDataFetchService
 ) {
 
     /**
@@ -111,6 +113,39 @@ class StockWatchlistController(
             ))
         } else {
             ResponseEntity.notFound().build()
+        }
+    }
+
+    /**
+     * Manually fetch data for a stock
+     */
+    @PostMapping("/{symbol}/fetch")
+    suspend fun fetchStockData(@PathVariable symbol: String): ResponseEntity<Map<String, Any>> {
+        return try {
+            println("Controller: Starting fetch for $symbol")
+            val success = yahooFinanceFundamentalService.fetchAndSaveFundamentalData(symbol)
+            println("Controller: Fetch completed for $symbol, success=$success")
+
+            if (success) {
+                println("Controller: Returning success response for $symbol")
+                ResponseEntity.ok(mapOf(
+                    "success" to true,
+                    "message" to "Data fetched successfully for $symbol"
+                ))
+            } else {
+                println("Controller: Returning failure response for $symbol")
+                ResponseEntity.ok(mapOf(
+                    "success" to false,
+                    "message" to "Failed to fetch data for $symbol"
+                ))
+            }
+        } catch (e: Exception) {
+            println("Controller: Exception while fetching $symbol: ${e.message}")
+            e.printStackTrace()
+            ResponseEntity.ok(mapOf(
+                "success" to false,
+                "message" to "Error fetching data: ${e.message}"
+            ))
         }
     }
 }

@@ -44,14 +44,22 @@ class StockWatchlistService(
      */
     @Transactional
     fun updateLastFetched(symbol: String) {
+        println("Service: updateLastFetched called for $symbol")
         val stock = stockWatchlistRepository.findBySymbol(symbol)
-        stock?.let {
-            val updated = it.copy(
-                lastFetchedAt = LocalDateTime.now(),
-                updatedAt = LocalDateTime.now()
-            )
-            stockWatchlistRepository.save(updated)
+        if (stock == null) {
+            println("Service: Stock $symbol not found in watchlist, cannot update last_fetched_at")
+            return
         }
+
+        val now = LocalDateTime.now()
+        println("Service: Found stock $symbol, updating last_fetched_at to $now")
+        val updated = stock.copy(
+            lastFetchedAt = now,
+            updatedAt = now
+        )
+        val saved = stockWatchlistRepository.save(updated)
+        stockWatchlistRepository.flush()
+        println("Service: Saved and flushed update for $symbol, last_fetched_at=${saved.lastFetchedAt}")
     }
 
     /**

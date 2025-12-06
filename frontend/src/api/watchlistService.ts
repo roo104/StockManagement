@@ -65,4 +65,16 @@ export const watchlistService = {
     const response = await apiClient.put<{ success: boolean; message: string }>(`/watchlist/${symbol}/deactivate`);
     return response.data;
   },
+
+  /**
+   * Fetch stock data from provider
+   */
+  fetchStock: async (symbol: string): Promise<{ success: boolean; message: string }> => {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      `/watchlist/${symbol}/fetch`,
+      {},
+      { timeout: 120000 } // 2 minutes timeout for data fetching
+    );
+    return response.data;
+  },
 };

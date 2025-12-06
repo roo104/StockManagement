@@ -1,7 +1,7 @@
 package jp.stocks.job
 
+import jp.stocks.service.FundamentalDataFetchService
 import jp.stocks.service.StockWatchlistService
-import jp.stocks.service.YahooFinanceFundamentalService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component
 @Component
 class FundamentalDataFetchJob(
     private val stockWatchlistService: StockWatchlistService,
-    private val yahooFinanceFundamentalService: YahooFinanceFundamentalService
+    private val yahooFinanceFundamentalService: FundamentalDataFetchService
 ) {
 
     private val logger = LoggerFactory.getLogger(FundamentalDataFetchJob::class.java)

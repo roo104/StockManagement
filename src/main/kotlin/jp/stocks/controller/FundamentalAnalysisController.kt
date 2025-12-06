@@ -3,8 +3,8 @@ package jp.stocks.controller
 import jp.stocks.model.dto.*
 import jp.stocks.service.DcfCalculatorService
 import jp.stocks.service.FundamentalAnalysisService
+import jp.stocks.service.FundamentalDataFetchService
 import jp.stocks.service.ValuationMetricsService
-import jp.stocks.service.YahooFinanceFundamentalService
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -17,7 +17,7 @@ class FundamentalAnalysisController(
     private val fundamentalAnalysisService: FundamentalAnalysisService,
     private val valuationMetricsService: ValuationMetricsService,
     private val dcfCalculatorService: DcfCalculatorService,
-    private val yahooFinanceFundamentalService: YahooFinanceFundamentalService
+    private val yahooFinanceFundamentalService: FundamentalDataFetchService
 ) {
 
     /**

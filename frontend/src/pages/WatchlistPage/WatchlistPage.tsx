@@ -90,6 +90,16 @@ const WatchlistPage: React.FC = () => {
     navigate(`/fundamental?symbol=${symbol}`);
   };
 
+  const handleFetchData = async (symbol: string) => {
+    try {
+      await watchlistService.fetchStock(symbol);
+      await fetchWatchlist();
+    } catch (err) {
+      setError(`Failed to fetch data for ${symbol}`);
+      console.error('Error fetching stock data:', err);
+    }
+  };
+
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return 'Never';
     return new Date(dateString).toLocaleString('en-US', {
@@ -150,8 +160,7 @@ const WatchlistPage: React.FC = () => {
                 <th>Symbol</th>
                 <th>Name</th>
                 <th>Status</th>
-                <th>Last Fetched</th>
-                <th>Fetch Frequency</th>
+                <th>Updated At</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -172,8 +181,17 @@ const WatchlistPage: React.FC = () => {
                     </span>
                   </td>
                   <td>{formatDate(stock.lastFetchedAt)}</td>
-                  <td>{stock.fetchFrequencyHours} hours</td>
                   <td className="actions-cell">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleFetchData(stock.symbol);
+                      }}
+                      className="fetch-button"
+                      title="Fetch data from provider"
+                    >
+                      🔄
+                    </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

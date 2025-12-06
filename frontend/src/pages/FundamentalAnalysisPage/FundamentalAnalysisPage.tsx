@@ -1,8 +1,11 @@
 import React, {useEffect, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {fundamentalService} from '../../api/fundamentalService';
+import {stockService} from '../../api/stockService';
 import {BalanceSheet, CashFlowStatement, CompanyOverview, FinancialStatements, IncomeStatement, ValuationMetrics,} from '../../types/FundamentalAnalysis';
+import {OhlcData} from '../../types/OhlcData';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import StockChart from '../../components/charts/StockChart';
 import {formatCurrency, formatDate, formatNumber, formatPercent} from '../../utils/formatters';
 import './FundamentalAnalysisPage.css';
 
@@ -13,7 +16,7 @@ const FundamentalAnalysisPage: React.FC = () => {
   const [symbol, setSymbol] = useState(symbolParam || 'AAPL');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'statements' | 'valuation' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'statements' | 'valuation' | 'history' | 'chart'>('overview');
 
   const [companyOverview, setCompanyOverview] = useState<CompanyOverview | null>(null);
   const [financialStatements, setFinancialStatements] = useState<FinancialStatements | null>(null);
@@ -21,6 +24,11 @@ const FundamentalAnalysisPage: React.FC = () => {
   const [incomeStatements, setIncomeStatements] = useState<IncomeStatement[]>([]);
   const [balanceSheets, setBalanceSheets] = useState<BalanceSheet[]>([]);
   const [cashFlowStatements, setCashFlowStatements] = useState<CashFlowStatement[]>([]);
+  const [ohlcData, setOhlcData] = useState<OhlcData[]>([]);
+  const [chartLoaded, setChartLoaded] = useState(false);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [chartPeriod, setChartPeriod] = useState('1y');
+  const [chartInterval, setChartInterval] = useState('1d');
 
   const fetchAllData = async () => {
     if (!symbol.trim()) {
@@ -91,6 +99,34 @@ const FundamentalAnalysisPage: React.FC = () => {
     }
   };
 
+  const fetchChartData = async () => {
+    if (!symbol.trim()) return;
+
+    setChartLoading(true);
+    try {
+      const data = await stockService.getOhlcData({
+        symbol,
+        period: chartPeriod,
+        interval: chartInterval
+      });
+      setOhlcData(data);
+      setChartLoaded(true);
+    } catch (err) {
+      console.error('Error fetching chart data:', err);
+      setError('Failed to load chart data');
+    } finally {
+      setChartLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: 'overview' | 'statements' | 'valuation' | 'history' | 'chart') => {
+    setActiveTab(tab);
+    // Lazy load chart data when chart tab is first activated
+    if (tab === 'chart' && !chartLoaded) {
+      fetchChartData();
+    }
+  };
+
   useEffect(() => {
     if (symbolParam) {
       setSymbol(symbolParam);
@@ -99,12 +135,19 @@ const FundamentalAnalysisPage: React.FC = () => {
 
   useEffect(() => {
     fetchAllData();
+    // Reset chart data when symbol changes
+    setChartLoaded(false);
+    setOhlcData([]);
+    // If chart tab is active, fetch new chart data
+    if (activeTab === 'chart') {
+      fetchChartData();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
 
   return (
     <div className="fundamental-analysis-page">
-      <h1>Fundamental Analysis</h1>
+      <h1>Analysis</h1>
 
       <div className="controls">
         <input
@@ -140,27 +183,33 @@ const FundamentalAnalysisPage: React.FC = () => {
           <div className="tabs">
             <button
               className={activeTab === 'overview' ? 'active' : ''}
-              onClick={() => setActiveTab('overview')}
+              onClick={() => handleTabChange('overview')}
             >
               Overview
             </button>
             <button
               className={activeTab === 'statements' ? 'active' : ''}
-              onClick={() => setActiveTab('statements')}
+              onClick={() => handleTabChange('statements')}
             >
               Financial Statements
             </button>
             <button
               className={activeTab === 'valuation' ? 'active' : ''}
-              onClick={() => setActiveTab('valuation')}
+              onClick={() => handleTabChange('valuation')}
             >
               Valuation Metrics
             </button>
             <button
               className={activeTab === 'history' ? 'active' : ''}
-              onClick={() => setActiveTab('history')}
+              onClick={() => handleTabChange('history')}
             >
               Historical Data
+            </button>
+            <button
+              className={activeTab === 'chart' ? 'active' : ''}
+              onClick={() => handleTabChange('chart')}
+            >
+              Price Chart
             </button>
           </div>
 
@@ -538,6 +587,73 @@ const FundamentalAnalysisPage: React.FC = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {activeTab === 'chart' && (
+              <div className="chart-section">
+                <div className="card">
+                  <div className="chart-controls">
+                    <div className="control-group">
+                      <label>Period:</label>
+                      <select
+                        value={chartPeriod}
+                        onChange={(e) => {
+                          setChartPeriod(e.target.value);
+                          setChartLoaded(false);
+                        }}
+                        disabled={chartLoading}
+                      >
+                        <option value="1d">1 Day</option>
+                        <option value="5d">5 Days</option>
+                        <option value="1mo">1 Month</option>
+                        <option value="3mo">3 Months</option>
+                        <option value="6mo">6 Months</option>
+                        <option value="1y">1 Year</option>
+                        <option value="2y">2 Years</option>
+                        <option value="5y">5 Years</option>
+                        <option value="max">Max</option>
+                      </select>
+                    </div>
+                    <div className="control-group">
+                      <label>Interval:</label>
+                      <select
+                        value={chartInterval}
+                        onChange={(e) => {
+                          setChartInterval(e.target.value);
+                          setChartLoaded(false);
+                        }}
+                        disabled={chartLoading}
+                      >
+                        <option value="1m">1 Minute</option>
+                        <option value="5m">5 Minutes</option>
+                        <option value="15m">15 Minutes</option>
+                        <option value="30m">30 Minutes</option>
+                        <option value="1h">1 Hour</option>
+                        <option value="1d">1 Day</option>
+                        <option value="1wk">1 Week</option>
+                        <option value="1mo">1 Month</option>
+                      </select>
+                    </div>
+                    <button
+                      onClick={fetchChartData}
+                      disabled={chartLoading}
+                      className="fetch-button"
+                    >
+                      {chartLoading ? 'Loading...' : 'Update Chart'}
+                    </button>
+                  </div>
+
+                  {chartLoading && <div className="loading">Loading chart data...</div>}
+
+                  {!chartLoading && ohlcData.length > 0 && (
+                    <StockChart data={ohlcData} symbol={symbol} />
+                  )}
+
+                  {!chartLoading && ohlcData.length === 0 && chartLoaded && (
+                    <div className="no-data">No chart data available for the selected period</div>
+                  )}
+                </div>
               </div>
             )}
           </div>

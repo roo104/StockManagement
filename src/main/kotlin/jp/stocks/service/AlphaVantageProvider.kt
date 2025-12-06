@@ -209,9 +209,10 @@ class AlphaVantageProvider(
 
     @Suppress("UNCHECKED_CAST")
     private fun parseIncomeStatement(symbol: String, response: Map<String, Any>, eps: BigDecimal?): IncomeStatement? {
+        logger.debug("Income statement response for $symbol: $response")
         val annualReports = response["annualReports"] as? List<Map<String, Any>>
         if (annualReports.isNullOrEmpty()) {
-            logger.warn("No annual reports found for $symbol")
+            logger.warn("No annual reports found for $symbol in income statement response. Response keys: ${response.keys}")
             return null
         }
 
@@ -253,9 +254,10 @@ class AlphaVantageProvider(
 
     @Suppress("UNCHECKED_CAST")
     private fun parseBalanceSheet(symbol: String, response: Map<String, Any>): BalanceSheet? {
+        logger.debug("Balance sheet response for $symbol: $response")
         val annualReports = response["annualReports"] as? List<Map<String, Any>>
         if (annualReports.isNullOrEmpty()) {
-            logger.warn("No annual reports found for $symbol")
+            logger.warn("No annual reports found for $symbol in balance sheet response. Response keys: ${response.keys}")
             return null
         }
 
@@ -290,9 +292,10 @@ class AlphaVantageProvider(
 
     @Suppress("UNCHECKED_CAST")
     private fun parseCashFlowStatement(symbol: String, response: Map<String, Any>): CashFlowStatement? {
+        logger.debug("Cash flow response for $symbol: $response")
         val annualReports = response["annualReports"] as? List<Map<String, Any>>
         if (annualReports.isNullOrEmpty()) {
-            logger.warn("No annual reports found for $symbol")
+            logger.warn("No annual reports found for $symbol in cash flow response. Response keys: ${response.keys}")
             return null
         }
 
