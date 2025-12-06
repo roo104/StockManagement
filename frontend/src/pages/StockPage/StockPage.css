@@ -1,0 +1,15 @@
+.stock-page {
+  width: 100%;
+}
+
+.stock-page h1 {
+  color: #f0f0f0;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.stock-page .loading {
+  text-align: center;
+  padding: 20px;
+  color: #b0b0b0;
+}
