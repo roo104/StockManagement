@@ -141,5 +141,10 @@ data class CompanyOverview(
     val sharesOutstanding: Long,
     val currency: String,
     val country: String?,
-    val exchange: String?
+    val exchange: String?,
+    val nextFiscalQuarterEnd: LocalDate?,
+    val yearlyRevenue: BigDecimal?,
+    val yearlyNetIncome: BigDecimal?,
+    val yearlyEbitda: BigDecimal?,
+    val yearlyEps: BigDecimal?
 )

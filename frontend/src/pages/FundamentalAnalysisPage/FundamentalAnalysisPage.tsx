@@ -50,7 +50,7 @@ const FundamentalAnalysisPage: React.FC = () => {
       const cashFlowHistory = await fundamentalService.getCashFlowStatements(symbol);
       setCashFlowStatements(cashFlowHistory);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching data');
+      setError(`No data found for ${symbol}. Try AAPL or fetch data using the "Fetch from Yahoo Finance" button (currently unavailable due to API authentication requirements).`);
       console.error('Error fetching fundamental data:', err);
     } finally {
       setLoading(false);
@@ -135,7 +135,7 @@ const FundamentalAnalysisPage: React.FC = () => {
           {loading ? 'Loading...' : 'Fetch Data'}
         </button>
         <button onClick={fetchDataFromYahoo} disabled={loading} className="fetch-yahoo-button">
-          Fetch from Yahoo Finance
+          Fetch from Provider
         </button>
       </div>
 
@@ -206,8 +206,46 @@ const FundamentalAnalysisPage: React.FC = () => {
                       <span className="label">Currency:</span>
                       <span className="value">{companyOverview.currency}</span>
                     </div>
+                    {companyOverview.nextFiscalQuarterEnd && (
+                      <div className="info-item">
+                        <span className="label">Next Fiscal Quarter End:</span>
+                        <span className="value">{formatDate(companyOverview.nextFiscalQuarterEnd)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {(companyOverview.yearlyRevenue || companyOverview.yearlyNetIncome || companyOverview.yearlyEbitda || companyOverview.yearlyEps) && (
+                  <div className="card">
+                    <h3>Yearly Fiscal Data</h3>
+                    <div className="info-grid">
+                      {companyOverview.yearlyRevenue && (
+                        <div className="info-item">
+                          <span className="label">Annual Revenue:</span>
+                          <span className="value">{formatCurrency(companyOverview.yearlyRevenue, companyOverview.currency)}</span>
+                        </div>
+                      )}
+                      {companyOverview.yearlyNetIncome && (
+                        <div className="info-item">
+                          <span className="label">Annual Net Income:</span>
+                          <span className="value">{formatCurrency(companyOverview.yearlyNetIncome, companyOverview.currency)}</span>
+                        </div>
+                      )}
+                      {companyOverview.yearlyEbitda && (
+                        <div className="info-item">
+                          <span className="label">Annual EBITDA:</span>
+                          <span className="value">{formatCurrency(companyOverview.yearlyEbitda, companyOverview.currency)}</span>
+                        </div>
+                      )}
+                      {companyOverview.yearlyEps && (
+                        <div className="info-item">
+                          <span className="label">Annual EPS:</span>
+                          <span className="value">{formatNumber(companyOverview.yearlyEps)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

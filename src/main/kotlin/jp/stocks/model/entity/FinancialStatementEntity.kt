@@ -206,6 +206,20 @@ data class CompanyOverviewEntity(
 
     val exchange: String? = null,
 
+    val nextFiscalQuarterEnd: LocalDate? = null,
+
+    @Column(precision = 20, scale = 2)
+    val yearlyRevenue: BigDecimal? = null,
+
+    @Column(precision = 20, scale = 2)
+    val yearlyNetIncome: BigDecimal? = null,
+
+    @Column(precision = 20, scale = 2)
+    val yearlyEbitda: BigDecimal? = null,
+
+    @Column(precision = 10, scale = 4)
+    val yearlyEps: BigDecimal? = null,
+
     @Column(nullable = false)
     val createdAt: LocalDateTime = LocalDateTime.now(),
 

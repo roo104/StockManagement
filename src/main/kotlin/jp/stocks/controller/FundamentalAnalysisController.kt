@@ -1,7 +1,10 @@
 package jp.stocks.controller
 
 import jp.stocks.model.dto.*
-import jp.stocks.service.*
+import jp.stocks.service.DcfCalculatorService
+import jp.stocks.service.FundamentalAnalysisService
+import jp.stocks.service.ValuationMetricsService
+import jp.stocks.service.YahooFinanceFundamentalService
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -206,7 +209,7 @@ class FundamentalAnalysisController(
     }
 
     /**
-     * Fetch and save fundamental data from Yahoo Finance
+     * Fetch and save fundamental data from configured provider
      */
     @PostMapping("/{symbol}/fetch")
     suspend fun fetchFundamentalData(
@@ -226,18 +229,4 @@ class FundamentalAnalysisController(
         }
     }
 
-    /**
-     * Fetch fundamental data from Yahoo Finance without saving
-     */
-    @GetMapping("/{symbol}/fetch-preview")
-    suspend fun fetchFundamentalDataPreview(
-        @PathVariable symbol: String
-    ): ResponseEntity<YahooFundamentalData> {
-        return try {
-            val data = yahooFinanceFundamentalService.fetchFundamentalData(symbol)
-            ResponseEntity.ok(data)
-        } catch (e: Exception) {
-            ResponseEntity.status(500).build()
-        }
-    }
 }

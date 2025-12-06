@@ -90,6 +90,11 @@ export interface CompanyOverview {
   currency: string;
   country?: string;
   exchange?: string;
+  nextFiscalQuarterEnd?: string;
+  yearlyRevenue?: number;
+  yearlyNetIncome?: number;
+  yearlyEbitda?: number;
+  yearlyEps?: number;
 }
 
 export interface DcfInput {

@@ -12,13 +12,14 @@ import jp.stocks.repository.IncomeStatementRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 @Service
 class FundamentalAnalysisService(
     private val incomeStatementRepository: IncomeStatementRepository,
     private val balanceSheetRepository: BalanceSheetRepository,
     private val cashFlowStatementRepository: CashFlowStatementRepository,
-    private val companyOverviewRepository: CompanyOverviewRepository
+    private val companyOverviewRepository: CompanyOverviewRepository,
 ) {
 
     /**
@@ -41,7 +42,7 @@ class FundamentalAnalysisService(
             symbol = symbol,
             incomeStatement = incomeStatement.toDto(),
             balanceSheet = balanceSheet.toDto(),
-            cashFlowStatement = cashFlowStatement.toDto()
+            cashFlowStatement = cashFlowStatement.toDto(),
         )
     }
 
@@ -65,7 +66,7 @@ class FundamentalAnalysisService(
             symbol = symbol,
             incomeStatement = incomeStatement.toDto(),
             balanceSheet = balanceSheet.toDto(),
-            cashFlowStatement = cashFlowStatement.toDto()
+            cashFlowStatement = cashFlowStatement.toDto(),
         )
     }
 
@@ -104,31 +105,109 @@ class FundamentalAnalysisService(
     }
 
     /**
-     * Save income statement
+     * Save income statement (upsert - update if exists, insert if new)
      */
     @Transactional
     fun saveIncomeStatement(incomeStatement: IncomeStatement): IncomeStatement {
-        val entity = incomeStatement.toEntity()
+        val existing = incomeStatementRepository.findBySymbolAndFiscalDateEnding(
+            incomeStatement.symbol,
+            incomeStatement.fiscalDateEnding
+        )
+
+        val entity = if (existing != null) {
+            // Update existing record
+            existing.copy(
+                reportedCurrency = incomeStatement.reportedCurrency,
+                totalRevenue = incomeStatement.totalRevenue,
+                costOfRevenue = incomeStatement.costOfRevenue,
+                grossProfit = incomeStatement.grossProfit,
+                operatingExpenses = incomeStatement.operatingExpenses,
+                operatingIncome = incomeStatement.operatingIncome,
+                interestExpense = incomeStatement.interestExpense,
+                incomeBeforeTax = incomeStatement.incomeBeforeTax,
+                incomeTaxExpense = incomeStatement.incomeTaxExpense,
+                netIncome = incomeStatement.netIncome,
+                ebitda = incomeStatement.ebitda,
+                eps = incomeStatement.eps,
+                weightedAverageShares = incomeStatement.weightedAverageShares,
+                updatedAt = LocalDateTime.now()
+            )
+        } else {
+            // Insert new record
+            incomeStatement.toEntity()
+        }
+
         val saved = incomeStatementRepository.save(entity)
         return saved.toDto()
     }
 
     /**
-     * Save balance sheet
+     * Save balance sheet (upsert - update if exists, insert if new)
      */
     @Transactional
     fun saveBalanceSheet(balanceSheet: BalanceSheet): BalanceSheet {
-        val entity = balanceSheet.toEntity()
+        val existing = balanceSheetRepository.findBySymbolAndFiscalDateEnding(
+            balanceSheet.symbol,
+            balanceSheet.fiscalDateEnding
+        )
+
+        val entity = if (existing != null) {
+            // Update existing record
+            existing.copy(
+                reportedCurrency = balanceSheet.reportedCurrency,
+                totalAssets = balanceSheet.totalAssets,
+                totalCurrentAssets = balanceSheet.totalCurrentAssets,
+                cashAndCashEquivalents = balanceSheet.cashAndCashEquivalents,
+                inventory = balanceSheet.inventory,
+                totalNonCurrentAssets = balanceSheet.totalNonCurrentAssets,
+                propertyPlantEquipment = balanceSheet.propertyPlantEquipment,
+                totalLiabilities = balanceSheet.totalLiabilities,
+                totalCurrentLiabilities = balanceSheet.totalCurrentLiabilities,
+                totalNonCurrentLiabilities = balanceSheet.totalNonCurrentLiabilities,
+                longTermDebt = balanceSheet.longTermDebt,
+                shortTermDebt = balanceSheet.shortTermDebt,
+                totalShareholderEquity = balanceSheet.totalShareholderEquity,
+                retainedEarnings = balanceSheet.retainedEarnings,
+                commonStock = balanceSheet.commonStock,
+                updatedAt = LocalDateTime.now()
+            )
+        } else {
+            // Insert new record
+            balanceSheet.toEntity()
+        }
+
         val saved = balanceSheetRepository.save(entity)
         return saved.toDto()
     }
 
     /**
-     * Save cash flow statement
+     * Save cash flow statement (upsert - update if exists, insert if new)
      */
     @Transactional
     fun saveCashFlowStatement(cashFlowStatement: CashFlowStatement): CashFlowStatement {
-        val entity = cashFlowStatement.toEntity()
+        val existing = cashFlowStatementRepository.findBySymbolAndFiscalDateEnding(
+            cashFlowStatement.symbol,
+            cashFlowStatement.fiscalDateEnding
+        )
+
+        val entity = if (existing != null) {
+            // Update existing record
+            existing.copy(
+                reportedCurrency = cashFlowStatement.reportedCurrency,
+                operatingCashflow = cashFlowStatement.operatingCashflow,
+                capitalExpenditures = cashFlowStatement.capitalExpenditures,
+                freeCashFlow = cashFlowStatement.freeCashFlow,
+                cashflowFromInvestment = cashFlowStatement.cashflowFromInvestment,
+                cashflowFromFinancing = cashFlowStatement.cashflowFromFinancing,
+                dividendPayout = cashFlowStatement.dividendPayout,
+                netChangeInCash = cashFlowStatement.netChangeInCash,
+                updatedAt = LocalDateTime.now()
+            )
+        } else {
+            // Insert new record
+            cashFlowStatement.toEntity()
+        }
+
         val saved = cashFlowStatementRepository.save(entity)
         return saved.toDto()
     }
@@ -138,7 +217,27 @@ class FundamentalAnalysisService(
      */
     @Transactional
     fun saveCompanyOverview(companyOverview: CompanyOverview): CompanyOverview {
-        val entity = companyOverview.toEntity()
+        val existing = companyOverviewRepository.findBySymbol(companyOverview.symbol)
+        // Update existing record
+        val entity = existing?.copy(
+            name = companyOverview.name,
+            description = companyOverview.description,
+            sector = companyOverview.sector,
+            industry = companyOverview.industry,
+            exchange = companyOverview.exchange,
+            currency = companyOverview.currency,
+            country = companyOverview.country,
+            marketCap = companyOverview.marketCap,
+            sharesOutstanding = companyOverview.sharesOutstanding,
+            yearlyRevenue = companyOverview.yearlyRevenue,
+            yearlyNetIncome = companyOverview.yearlyNetIncome,
+            yearlyEbitda = companyOverview.yearlyEbitda,
+            yearlyEps = companyOverview.yearlyEps,
+            nextFiscalQuarterEnd = companyOverview.nextFiscalQuarterEnd,
+            updatedAt = LocalDateTime.now(),
+        )
+            ?: // Create new record
+            companyOverview.toEntity()
         val saved = companyOverviewRepository.save(entity)
         return saved.toDto()
     }
@@ -160,7 +259,7 @@ private fun IncomeStatementEntity.toDto() = IncomeStatement(
     netIncome = netIncome,
     ebitda = ebitda,
     eps = eps,
-    weightedAverageShares = weightedAverageShares
+    weightedAverageShares = weightedAverageShares,
 )
 
 private fun BalanceSheetEntity.toDto() = BalanceSheet(
@@ -180,7 +279,7 @@ private fun BalanceSheetEntity.toDto() = BalanceSheet(
     shortTermDebt = shortTermDebt,
     totalShareholderEquity = totalShareholderEquity,
     retainedEarnings = retainedEarnings,
-    commonStock = commonStock
+    commonStock = commonStock,
 )
 
 private fun CashFlowStatementEntity.toDto() = CashFlowStatement(
@@ -193,7 +292,7 @@ private fun CashFlowStatementEntity.toDto() = CashFlowStatement(
     cashflowFromInvestment = cashflowFromInvestment,
     cashflowFromFinancing = cashflowFromFinancing,
     dividendPayout = dividendPayout,
-    netChangeInCash = netChangeInCash
+    netChangeInCash = netChangeInCash,
 )
 
 private fun CompanyOverviewEntity.toDto() = CompanyOverview(
@@ -206,7 +305,12 @@ private fun CompanyOverviewEntity.toDto() = CompanyOverview(
     sharesOutstanding = sharesOutstanding,
     currency = currency,
     country = country,
-    exchange = exchange
+    exchange = exchange,
+    nextFiscalQuarterEnd = nextFiscalQuarterEnd,
+    yearlyRevenue = yearlyRevenue,
+    yearlyNetIncome = yearlyNetIncome,
+    yearlyEbitda = yearlyEbitda,
+    yearlyEps = yearlyEps,
 )
 
 // Extension functions for DTO to entity conversion
@@ -225,7 +329,7 @@ private fun IncomeStatement.toEntity() = IncomeStatementEntity(
     netIncome = netIncome,
     ebitda = ebitda,
     eps = eps,
-    weightedAverageShares = weightedAverageShares
+    weightedAverageShares = weightedAverageShares,
 )
 
 private fun BalanceSheet.toEntity() = BalanceSheetEntity(
@@ -245,7 +349,7 @@ private fun BalanceSheet.toEntity() = BalanceSheetEntity(
     shortTermDebt = shortTermDebt,
     totalShareholderEquity = totalShareholderEquity,
     retainedEarnings = retainedEarnings,
-    commonStock = commonStock
+    commonStock = commonStock,
 )
 
 private fun CashFlowStatement.toEntity() = CashFlowStatementEntity(
@@ -258,7 +362,7 @@ private fun CashFlowStatement.toEntity() = CashFlowStatementEntity(
     cashflowFromInvestment = cashflowFromInvestment,
     cashflowFromFinancing = cashflowFromFinancing,
     dividendPayout = dividendPayout,
-    netChangeInCash = netChangeInCash
+    netChangeInCash = netChangeInCash,
 )
 
 private fun CompanyOverview.toEntity() = CompanyOverviewEntity(
@@ -271,5 +375,10 @@ private fun CompanyOverview.toEntity() = CompanyOverviewEntity(
     sharesOutstanding = sharesOutstanding,
     currency = currency,
     country = country,
-    exchange = exchange
+    exchange = exchange,
+    nextFiscalQuarterEnd = nextFiscalQuarterEnd,
+    yearlyRevenue = yearlyRevenue,
+    yearlyNetIncome = yearlyNetIncome,
+    yearlyEbitda = yearlyEbitda,
+    yearlyEps = yearlyEps,
 )
