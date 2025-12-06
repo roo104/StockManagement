@@ -138,28 +138,24 @@ class ValuationMetricsService(
     private fun calculateROE(netIncome: BigDecimal, totalEquity: BigDecimal): BigDecimal? {
         return if (totalEquity > BigDecimal.ZERO) {
             netIncome.divide(totalEquity, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal(100))
         } else null
     }
 
     private fun calculateROA(netIncome: BigDecimal, totalAssets: BigDecimal): BigDecimal? {
         return if (totalAssets > BigDecimal.ZERO) {
             netIncome.divide(totalAssets, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal(100))
         } else null
     }
 
     private fun calculateProfitMargin(netIncome: BigDecimal, totalRevenue: BigDecimal): BigDecimal? {
         return if (totalRevenue > BigDecimal.ZERO) {
             netIncome.divide(totalRevenue, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal(100))
         } else null
     }
 
     private fun calculateOperatingMargin(operatingIncome: BigDecimal, totalRevenue: BigDecimal): BigDecimal? {
         return if (totalRevenue > BigDecimal.ZERO) {
             operatingIncome.divide(totalRevenue, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal(100))
         } else null
     }
 
@@ -171,14 +167,12 @@ class ValuationMetricsService(
         val dividendPerShare = dividendPayout.divide(BigDecimal(sharesOutstanding), 4, RoundingMode.HALF_UP)
         return if (currentPrice > BigDecimal.ZERO) {
             dividendPerShare.divide(currentPrice, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal(100))
         } else null
     }
 
     private fun calculatePayoutRatio(dividendPayout: BigDecimal, netIncome: BigDecimal): BigDecimal? {
         return if (netIncome > BigDecimal.ZERO) {
             dividendPayout.divide(netIncome, 4, RoundingMode.HALF_UP)
-                .multiply(BigDecimal(100))
         } else null
     }
 }
