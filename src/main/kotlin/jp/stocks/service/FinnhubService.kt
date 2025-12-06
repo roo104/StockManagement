@@ -51,7 +51,9 @@ class FinnhubService(
                 marketCap = (response["marketCapitalization"] as? Number)?.let {
                     BigDecimal(it.toDouble() * 1_000_000)
                 } ?: BigDecimal.ZERO,
-                sharesOutstanding = (response["shareOutstanding"] as? Number)?.toLong() ?: 0L,
+                sharesOutstanding = (response["shareOutstanding"] as? Number)?.let {
+                    (it.toDouble() * 1_000_000).toLong()
+                } ?: 0L,
                 yearlyRevenue = null,
                 yearlyNetIncome = null,
                 yearlyEbitda = null,
@@ -255,6 +257,11 @@ class FinnhubService(
         val operatingExpenses = findValue("Operating Expenses", "OperatingExpenses")
             ?: (rdExpense + sellingExpense + gaExpense)
 
+        val operatingIncome = findValue(
+            "Operating Income (Loss)",
+            "OperatingIncomeLoss"
+        ) ?: BigDecimal.ZERO
+
         val netIncome = findValue("Net income", "NetIncomeLoss") ?: BigDecimal.ZERO
         val weightedAverageShares = findValue(
             "Weighted Average Number of Shares Outstanding, Basic",
@@ -268,6 +275,20 @@ class FinnhubService(
             }
         }
 
+        // Calculate EBITDA: Operating Income + Depreciation + Amortization
+        val depreciation = findValue(
+            "Depreciation, Depletion and Amortization",
+            "DepreciationDepletionAndAmortization",
+            "Depreciation and Amortization"
+        ) ?: BigDecimal.ZERO
+        val ebitda = findValue("EBITDA") ?: run {
+            if (operatingIncome != BigDecimal.ZERO || depreciation != BigDecimal.ZERO) {
+                operatingIncome + depreciation
+            } else {
+                BigDecimal.ZERO
+            }
+        }
+
         return IncomeStatement(
             symbol = symbol,
             fiscalDateEnding = date,
@@ -276,11 +297,8 @@ class FinnhubService(
             costOfRevenue = costOfRevenue,
             grossProfit = grossProfit,
             operatingExpenses = operatingExpenses,
-            operatingIncome = findValue(
-                "Operating Income (Loss)",
-                "OperatingIncomeLoss"
-            ) ?: BigDecimal.ZERO,
-            ebitda = findValue("EBITDA") ?: BigDecimal.ZERO,
+            operatingIncome = operatingIncome,
+            ebitda = ebitda,
             interestExpense = findValue("Interest Expense", "InterestExpense"),
             incomeTaxExpense = findValue(
                 "Income Tax Expense (Benefit)",
@@ -297,6 +315,9 @@ class FinnhubService(
     }
 
     private fun parseCashFlowStatement(symbol: String, date: LocalDate, cf: List<Map<String, Any>>): CashFlowStatement {
+        // Debug: Print all available labels in cash flow statement
+        logger.info("Cash flow labels for $symbol: ${cf.map { it["label"] }}")
+
         fun findValue(vararg labels: String): BigDecimal? {
             for (label in labels) {
                 val value = cf.find { it["label"] == label }?.get("value")?.let {
@@ -312,10 +333,14 @@ class FinnhubService(
         }
 
         val operatingCashFlow = findValue(
+            "Net cash from operations",
+            "Net cash provided by operating activities",
             "Net Cash Provided by (Used in) Operating Activities",
             "NetCashProvidedByUsedInOperatingActivities"
         ) ?: BigDecimal.ZERO
         val capex = findValue(
+            "Additions to property and equipment",
+            "Purchases of property and equipment",
             "Payments to Acquire Property, Plant, and Equipment",
             "PaymentsToAcquirePropertyPlantAndEquipment"
         ) ?: BigDecimal.ZERO
@@ -329,18 +354,25 @@ class FinnhubService(
             capitalExpenditures = capex,
             freeCashFlow = freeCashFlow,
             cashflowFromInvestment = findValue(
+                "Net cash used in investing",
+                "Net cash used in investing activities",
                 "Net Cash Provided by (Used in) Investing Activities",
                 "NetCashProvidedByUsedInInvestingActivities"
             ) ?: BigDecimal.ZERO,
             cashflowFromFinancing = findValue(
+                "Net cash used in financing",
+                "Net cash used in financing activities",
                 "Net Cash Provided by (Used in) Financing Activities",
                 "NetCashProvidedByUsedInFinancingActivities"
             ) ?: BigDecimal.ZERO,
             dividendPayout = findValue(
+                "Dividend payments",
+                "Total Amount",
                 "Payments of Ordinary Dividends, Common Stock",
                 "PaymentsOfDividends"
             )?.abs(),
             netChangeInCash = findValue(
+                "Net increase (decrease) in cash and cash equivalents",
                 "Cash, Cash Equivalents, Restricted Cash, and Restricted Cash Equivalents, Period Increase (Decrease), Including Exchange Rate Effect",
                 "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect"
             ) ?: BigDecimal.ZERO

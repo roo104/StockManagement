@@ -3,6 +3,7 @@ import {useSearchParams} from 'react-router-dom';
 import {fundamentalService} from '../../api/fundamentalService';
 import {BalanceSheet, CashFlowStatement, CompanyOverview, FinancialStatements, IncomeStatement, ValuationMetrics,} from '../../types/FundamentalAnalysis';
 import ErrorMessage from '../../components/common/ErrorMessage';
+import {formatCurrency, formatDate, formatNumber, formatPercent} from '../../utils/formatters';
 import './FundamentalAnalysisPage.css';
 
 const FundamentalAnalysisPage: React.FC = () => {
@@ -100,34 +101,6 @@ const FundamentalAnalysisPage: React.FC = () => {
     fetchAllData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbol]);
-
-  const formatCurrency = (value: number | undefined, currency: string = 'USD') => {
-    if (value === undefined || value === null) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency,
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const formatNumber = (value: number | undefined, decimals: number = 2) => {
-    if (value === undefined || value === null) return 'N/A';
-    return value.toFixed(decimals);
-  };
-
-  const formatPercent = (value: number | undefined) => {
-    if (value === undefined || value === null) return 'N/A';
-    return `${(value * 100).toFixed(2)}%`;
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   return (
     <div className="fundamental-analysis-page">
