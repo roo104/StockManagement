@@ -16,6 +16,8 @@ import java.time.ZoneId
 class YahooFinanceFundamentalService(
     private val webClient: WebClient = WebClient.builder()
         .baseUrl("https://query2.finance.yahoo.com")
+        .defaultHeader("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+        .defaultHeader("Accept", "application/json")
         .build(),
     private val fundamentalAnalysisService: FundamentalAnalysisService
 ) {
@@ -58,21 +60,28 @@ class YahooFinanceFundamentalService(
      * Fetch fundamental data from Yahoo Finance
      */
     suspend fun fetchFundamentalData(symbol: String): YahooFundamentalData {
-        val response = webClient.get()
-            .uri { uriBuilder ->
-                uriBuilder
-                    .path("/v10/finance/quoteSummary/{symbol}")
-                    .queryParam("modules", "incomeStatementHistory,incomeStatementHistoryQuarterly," +
-                            "balanceSheetHistory,balanceSheetHistoryQuarterly," +
-                            "cashflowStatementHistory,cashflowStatementHistoryQuarterly," +
-                            "defaultKeyStatistics,financialData,summaryProfile," +
-                            "assetProfile,price,summaryDetail")
-                    .build(symbol)
-            }
-            .retrieve()
-            .awaitBody<Map<String, Any>>()
+        return try {
+            val response = webClient.get()
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .path("/v10/finance/quoteSummary/{symbol}")
+                        .queryParam("modules", "incomeStatementHistory,incomeStatementHistoryQuarterly," +
+                                "balanceSheetHistory,balanceSheetHistoryQuarterly," +
+                                "cashflowStatementHistory,cashflowStatementHistoryQuarterly," +
+                                "defaultKeyStatistics,financialData,summaryProfile," +
+                                "assetProfile,price,summaryDetail")
+                        .build(symbol)
+                }
+                .retrieve()
+                .awaitBody<Map<String, Any>>()
 
-        return parseYahooFundamentalResponse(symbol, response)
+            parseYahooFundamentalResponse(symbol, response)
+        } catch (e: Exception) {
+            println("Yahoo Finance API error for $symbol: ${e.message}")
+            println("Note: Yahoo Finance quoteSummary API requires authentication.")
+            println("Consider using alternative data sources or manual data entry.")
+            throw Exception("Yahoo Finance API is currently unavailable. The quoteSummary endpoint requires authentication tokens (crumb/cookie). Please use manual data entry or alternative data providers.")
+        }
     }
 
     /**
