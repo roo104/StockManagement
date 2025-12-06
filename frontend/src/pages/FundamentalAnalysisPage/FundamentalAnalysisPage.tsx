@@ -1,11 +1,15 @@
 import React, {useEffect, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {fundamentalService} from '../../api/fundamentalService';
 import {BalanceSheet, CashFlowStatement, CompanyOverview, FinancialStatements, IncomeStatement, ValuationMetrics,} from '../../types/FundamentalAnalysis';
 import ErrorMessage from '../../components/common/ErrorMessage';
 import './FundamentalAnalysisPage.css';
 
 const FundamentalAnalysisPage: React.FC = () => {
-  const [symbol, setSymbol] = useState('AAPL');
+  const [searchParams] = useSearchParams();
+  const symbolParam = searchParams.get('symbol');
+
+  const [symbol, setSymbol] = useState(symbolParam || 'AAPL');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'statements' | 'valuation' | 'history'>('overview');
@@ -50,7 +54,7 @@ const FundamentalAnalysisPage: React.FC = () => {
       const cashFlowHistory = await fundamentalService.getCashFlowStatements(symbol);
       setCashFlowStatements(cashFlowHistory);
     } catch (err) {
-      setError(`No data found for ${symbol}. Try AAPL or fetch data using the "Fetch from Yahoo Finance" button (currently unavailable due to API authentication requirements).`);
+      setError(`No data found for ${symbol}. Try fetching data using the "Fetch from Provider" button.`);
       console.error('Error fetching fundamental data:', err);
     } finally {
       setLoading(false);
@@ -87,9 +91,15 @@ const FundamentalAnalysisPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (symbolParam) {
+      setSymbol(symbolParam);
+    }
+  }, [symbolParam]);
+
+  useEffect(() => {
     fetchAllData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [symbol]);
 
   const formatCurrency = (value: number | undefined, currency: string = 'USD') => {
     if (value === undefined || value === null) return 'N/A';

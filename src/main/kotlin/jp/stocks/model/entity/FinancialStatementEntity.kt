@@ -51,7 +51,7 @@ data class IncomeStatementEntity(
     @Column(precision = 20, scale = 2)
     val ebitda: BigDecimal,
 
-    @Column(precision = 10, scale = 4)
+    @Column(precision = 20, scale = 4)
     val eps: BigDecimal,
 
     @Column(nullable = false)
@@ -217,7 +217,7 @@ data class CompanyOverviewEntity(
     @Column(precision = 20, scale = 2)
     val yearlyEbitda: BigDecimal? = null,
 
-    @Column(precision = 10, scale = 4)
+    @Column(precision = 20, scale = 4)
     val yearlyEps: BigDecimal? = null,
 
     @Column(nullable = false)

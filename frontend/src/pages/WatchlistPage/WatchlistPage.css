@@ -1,0 +1,221 @@
+.watchlist-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.watchlist-page h1 {
+  margin-bottom: 2rem;
+  color: #e0e0e0;
+}
+
+.add-stock-form {
+  background: #1e1e1e;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  margin-bottom: 2rem;
+  border: 1px solid #333;
+}
+
+.add-stock-form h2 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #b0b0b0;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.symbol-input {
+  flex: 0 0 150px;
+  padding: 0.75rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.symbol-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.name-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.name-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.add-button {
+  padding: 0.75rem 1.5rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.add-button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.add-button:disabled {
+  background: #555;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #b0b0b0;
+  font-size: 1.1rem;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 3rem;
+  background: #1e1e1e;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
+}
+
+.empty-state p {
+  color: #b0b0b0;
+  font-size: 1.1rem;
+}
+
+.watchlist-table-container {
+  background: #1e1e1e;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.watchlist-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.watchlist-table thead {
+  background: #2a2a2a;
+}
+
+.watchlist-table th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #b0b0b0;
+  border-bottom: 2px solid #444;
+}
+
+.watchlist-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #333;
+  color: #e0e0e0;
+}
+
+.watchlist-table tbody tr.clickable-row {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.watchlist-table tbody tr.clickable-row:hover {
+  background: #2a2a2a;
+}
+
+.watchlist-table tbody tr.inactive {
+  opacity: 0.5;
+}
+
+.symbol-cell {
+  font-family: 'Courier New', monospace;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.status-badge.active {
+  background: #1b5e20;
+  color: #a5d6a7;
+}
+
+.status-badge.inactive {
+  background: #5a1c1c;
+  color: #ef9a9a;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.toggle-button,
+.remove-button {
+  padding: 0.5rem 0.75rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background 0.2s;
+}
+
+.toggle-button {
+  background: #ffc107;
+}
+
+.toggle-button:hover {
+  background: #e0a800;
+}
+
+.remove-button {
+  background: #dc3545;
+}
+
+.remove-button:hover {
+  background: #c82333;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+  }
+
+  .symbol-input {
+    flex: 1;
+    width: 100%;
+  }
+
+  .watchlist-table {
+    font-size: 0.875rem;
+  }
+
+  .watchlist-table th,
+  .watchlist-table td {
+    padding: 0.5rem;
+  }
+}

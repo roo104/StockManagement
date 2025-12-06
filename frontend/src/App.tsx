@@ -12,6 +12,7 @@ function App() {
           <div className="nav-links">
             <Link to="/stocks" className="nav-link">Stock Charts</Link>
             <Link to="/fundamental" className="nav-link">Fundamental Analysis</Link>
+            <Link to="/watchlist" className="nav-link">Watchlist</Link>
           </div>
         </nav>
         <div className="container">
