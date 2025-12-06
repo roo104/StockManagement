@@ -90,7 +90,8 @@ export interface CompanyOverview {
   currency: string;
   country?: string;
   exchange?: string;
-  nextFiscalQuarterEnd?: string;
+  lastReportedQuarter?: string;
+  nextEarningsDate?: string;
   yearlyRevenue?: number;
   yearlyNetIncome?: number;
   yearlyEbitda?: number;

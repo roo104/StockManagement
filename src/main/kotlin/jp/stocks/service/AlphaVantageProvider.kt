@@ -36,9 +36,52 @@ class AlphaVantageProvider(
                 .retrieve()
                 .awaitBody<Map<String, Any>>()
 
-            parseCompanyOverview(symbol, response)
+            val nextEarningsDate = fetchNextEarningsDate(symbol)
+            parseCompanyOverview(symbol, response, nextEarningsDate)
         } catch (e: Exception) {
             logger.error("Error fetching company overview for $symbol from Alpha Vantage: ${e.message}", e)
+            null
+        }
+    }
+
+    private suspend fun fetchNextEarningsDate(symbol: String): LocalDate? {
+        return try {
+            val response = webClient.get()
+                .uri { uriBuilder ->
+                    uriBuilder
+                        .queryParam("function", "EARNINGS_CALENDAR")
+                        .queryParam("symbol", symbol)
+                        .queryParam("apikey", apiKey)
+                        .build()
+                }
+                .retrieve()
+                .awaitBody<String>()
+
+            // Parse CSV response to get the next earnings date
+            parseEarningsCalendar(response)
+        } catch (e: Exception) {
+            logger.error("Error fetching earnings calendar for $symbol: ${e.message}", e)
+            null
+        }
+    }
+
+    private fun parseEarningsCalendar(csvResponse: String): LocalDate? {
+        return try {
+            val lines = csvResponse.lines()
+            if (lines.size < 2) return null
+
+            // First line is header, second line is the most recent/upcoming earnings
+            val dataLine = lines[1]
+            val fields = dataLine.split(",")
+
+            // reportDate is the 3rd field (index 2) based on API docs
+            if (fields.size >= 3) {
+                LocalDate.parse(fields[2])
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("Error parsing earnings calendar CSV: ${e.message}", e)
             null
         }
     }
@@ -126,13 +169,20 @@ class AlphaVantageProvider(
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun parseCompanyOverview(symbol: String, response: Map<String, Any>): CompanyOverview? {
+    private fun parseCompanyOverview(symbol: String, response: Map<String, Any>, nextEarningsDate: LocalDate?): CompanyOverview? {
         if (response.isEmpty() || response.containsKey("Error Message") || response.containsKey("Note")) {
             logger.warn("Invalid response for $symbol: ${response["Error Message"] ?: response["Note"]}")
             return null
         }
 
         return try {
+            // Parse latest quarter date if available
+            val latestQuarter = try {
+                (response["LatestQuarter"] as? String)?.let { LocalDate.parse(it) }
+            } catch (e: Exception) {
+                null
+            }
+
             CompanyOverview(
                 symbol = symbol,
                 name = response["Name"] as? String ?: "",
@@ -148,7 +198,8 @@ class AlphaVantageProvider(
                 yearlyNetIncome = null,
                 yearlyEbitda = (response["EBITDA"] as? String)?.toBigDecimalOrNull(),
                 yearlyEps = (response["EPS"] as? String)?.toBigDecimalOrNull(),
-                nextFiscalQuarterEnd = null
+                lastReportedQuarter = latestQuarter,
+                nextEarningsDate = nextEarningsDate
             )
         } catch (e: Exception) {
             logger.error("Error parsing company overview for $symbol: ${e.message}", e)

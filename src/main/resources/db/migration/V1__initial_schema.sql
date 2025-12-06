@@ -14,7 +14,7 @@ CREATE TABLE income_statements (
     income_tax_expense NUMERIC(20, 2) NOT NULL,
     net_income NUMERIC(20, 2) NOT NULL,
     ebitda NUMERIC(20, 2) NOT NULL,
-    eps NUMERIC(10, 4) NOT NULL,
+    eps NUMERIC(20, 4) NOT NULL,
     weighted_average_shares BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -86,6 +86,9 @@ CREATE TABLE company_overviews (
     currency VARCHAR(3) NOT NULL,
     country VARCHAR(100),
     exchange VARCHAR(50),
+    yearly_eps NUMERIC(20, 4),
+    last_reported_quarter DATE,
+    next_earnings_date DATE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -93,3 +96,32 @@ CREATE TABLE company_overviews (
 CREATE INDEX idx_company_overviews_symbol ON company_overviews(symbol);
 CREATE INDEX idx_company_overviews_sector ON company_overviews(sector);
 CREATE INDEX idx_company_overviews_industry ON company_overviews(industry);
+
+-- Stock Watchlist Table
+CREATE TABLE stock_watchlist (
+    id BIGSERIAL PRIMARY KEY,
+    symbol VARCHAR(10) NOT NULL UNIQUE,
+    name VARCHAR(255),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_fetched_at TIMESTAMP,
+    fetch_frequency_hours INT NOT NULL DEFAULT 24,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_stock_watchlist_symbol ON stock_watchlist(symbol);
+CREATE INDEX idx_stock_watchlist_active ON stock_watchlist(active);
+CREATE INDEX idx_stock_watchlist_last_fetched ON stock_watchlist(last_fetched_at);
+
+-- Insert some default stocks to track
+INSERT INTO stock_watchlist (symbol, name, active) VALUES
+    ('AAPL', 'Apple Inc.', true),
+    ('MSFT', 'Microsoft Corporation', true),
+    ('GOOGL', 'Alphabet Inc.', true),
+    ('AMZN', 'Amazon.com Inc.', true),
+    ('TSLA', 'Tesla Inc.', true),
+    ('META', 'Meta Platforms Inc.', true),
+    ('NVDA', 'NVIDIA Corporation', true),
+    ('JPM', 'JPMorgan Chase & Co.', true),
+    ('V', 'Visa Inc.', true),
+    ('WMT', 'Walmart Inc.', true);

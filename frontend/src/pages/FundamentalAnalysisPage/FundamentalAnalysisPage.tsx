@@ -189,10 +189,16 @@ const FundamentalAnalysisPage: React.FC = () => {
                       <span className="label">Currency:</span>
                       <span className="value">{companyOverview.currency}</span>
                     </div>
-                    {companyOverview.nextFiscalQuarterEnd && (
+                    {companyOverview.lastReportedQuarter && (
                       <div className="info-item">
-                        <span className="label">Next Fiscal Quarter End:</span>
-                        <span className="value">{formatDate(companyOverview.nextFiscalQuarterEnd)}</span>
+                        <span className="label">Last Reported Quarter:</span>
+                        <span className="value">{formatDate(companyOverview.lastReportedQuarter)}</span>
+                      </div>
+                    )}
+                    {companyOverview.nextEarningsDate && (
+                      <div className="info-item">
+                        <span className="label">Next Earnings Date:</span>
+                        <span className="value">{formatDate(companyOverview.nextEarningsDate)}</span>
                       </div>
                     )}
                   </div>

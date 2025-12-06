@@ -206,7 +206,9 @@ data class CompanyOverviewEntity(
 
     val exchange: String? = null,
 
-    val nextFiscalQuarterEnd: LocalDate? = null,
+    val lastReportedQuarter: LocalDate? = null,
+
+    val nextEarningsDate: LocalDate? = null,
 
     @Column(precision = 20, scale = 2)
     val yearlyRevenue: BigDecimal? = null,

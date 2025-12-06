@@ -58,7 +58,8 @@ class FinnhubService(
                 yearlyNetIncome = null,
                 yearlyEbitda = null,
                 yearlyEps = null,
-                nextFiscalQuarterEnd = null
+                lastReportedQuarter = null,
+                nextEarningsDate = null
             )
         } catch (e: Exception) {
             logger.error("Error fetching company profile for $symbol from Finnhub: ${e.message}", e)
