@@ -1,5 +1,6 @@
 package jp.stocks.config
 
+import jp.stocks.service.AlphaVantageProvider
 import jp.stocks.service.FinancialDataProvider
 import jp.stocks.service.FinnhubService
 import jp.stocks.service.YahooFinanceProvider
@@ -18,7 +19,8 @@ class FinancialDataProviderConfig {
     @Primary
     fun financialDataProvider(
         finnhubService: FinnhubService,
-        yahooFinanceProvider: YahooFinanceProvider
+        yahooFinanceProvider: YahooFinanceProvider,
+        alphaVantageProvider: AlphaVantageProvider
     ): FinancialDataProvider {
         return when (providerName.lowercase()) {
             "yahoo" -> {
@@ -28,6 +30,10 @@ class FinancialDataProviderConfig {
             "finnhub" -> {
                 println("Using Finnhub as financial data provider")
                 finnhubService
+            }
+            "alphavantage" -> {
+                println("Using Alpha Vantage as financial data provider")
+                alphaVantageProvider
             }
             else -> {
                 println("Unknown provider '$providerName', defaulting to Finnhub")
