@@ -1,0 +1,413 @@
+.growth-screening-page {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.growth-screening-header {
+  margin-bottom: 30px;
+}
+
+.growth-screening-header h1 {
+  font-size: 28px;
+  margin-bottom: 10px;
+  color: #e0e0e0;
+}
+
+.growth-screening-header p {
+  color: #b0b0b0;
+  font-size: 14px;
+}
+
+/* Filters Section */
+.filters-section {
+  background: #1e1e1e;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  margin-bottom: 20px;
+  border: 1px solid #333;
+}
+
+.filters-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #e0e0e0;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-group label {
+  font-size: 13px;
+  margin-bottom: 5px;
+  color: #b0b0b0;
+  font-weight: 500;
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-filter {
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #4285f4;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #3367d6;
+}
+
+.btn-secondary {
+  background: #444;
+  color: #e0e0e0;
+  border: 1px solid #555;
+}
+
+.btn-secondary:hover {
+  background: #555;
+}
+
+/* Summary Stats */
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: #1e1e1e;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #b0b0b0;
+  margin-bottom: 5px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
+.stat-value.primary {
+  color: #4285f4;
+}
+
+/* Results Section */
+.results-section {
+  background: #1e1e1e;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid #333;
+}
+
+.results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.results-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.results-count {
+  font-size: 14px;
+  color: #b0b0b0;
+}
+
+/* Growth Stock Cards */
+.growth-stocks-grid {
+  display: grid;
+  gap: 15px;
+}
+
+.growth-stock-card {
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.growth-stock-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  border-color: #4285f4;
+}
+
+.stock-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.stock-info h3 {
+  font-size: 20px;
+  margin-bottom: 5px;
+  color: #e0e0e0;
+}
+
+.stock-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #b0b0b0;
+}
+
+.overall-score {
+  text-align: right;
+}
+
+.score-label {
+  font-size: 12px;
+  color: #b0b0b0;
+  margin-bottom: 5px;
+}
+
+.score-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-high {
+  color: #4caf50;
+}
+
+.score-strong {
+  color: #2196f3;
+}
+
+.score-moderate {
+  color: #ff9800;
+}
+
+.score-low {
+  color: #f44336;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-top: 5px;
+}
+
+.badge-high {
+  background: #1b5e20;
+  color: #a5d6a7;
+}
+
+.badge-strong {
+  background: #0d47a1;
+  color: #90caf9;
+}
+
+.badge-moderate {
+  background: #e65100;
+  color: #ffcc80;
+}
+
+.badge-low {
+  background: #b71c1c;
+  color: #ef9a9a;
+}
+
+/* Score Breakdown */
+.score-breakdown {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.score-item {
+  text-align: center;
+}
+
+.score-item-label {
+  font-size: 11px;
+  color: #b0b0b0;
+  margin-bottom: 5px;
+  display: block;
+}
+
+.score-item-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #e0e0e0;
+}
+
+/* Growth Metrics */
+.growth-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #444;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 11px;
+  color: #b0b0b0;
+  margin-bottom: 5px;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.metric-value.positive {
+  color: #4caf50;
+}
+
+.metric-value.negative {
+  color: #f44336;
+}
+
+.metric-trend {
+  font-size: 11px;
+  margin-top: 3px;
+}
+
+.trend-improving {
+  color: #4caf50;
+}
+
+.trend-declining {
+  color: #f44336;
+}
+
+.trend-stable {
+  color: #b0b0b0;
+}
+
+/* Flags */
+.flags-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #444;
+}
+
+.flag {
+  font-size: 12px;
+  padding: 6px 12px;
+  background: #383838;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #e0e0e0;
+  border: 1px solid #555;
+}
+
+/* Loading and Error States */
+.loading-state,
+.error-state,
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #b0b0b0;
+}
+
+.loading-state {
+  font-size: 16px;
+}
+
+.error-state {
+  color: #f44336;
+}
+
+.empty-state h3 {
+  font-size: 18px;
+  color: #e0e0e0;
+  margin-bottom: 10px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: #b0b0b0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .score-breakdown {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .growth-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+}

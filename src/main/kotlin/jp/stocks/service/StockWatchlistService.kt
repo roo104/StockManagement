@@ -8,7 +8,8 @@ import java.time.LocalDateTime
 
 @Service
 class StockWatchlistService(
-    private val stockWatchlistRepository: StockWatchlistRepository
+    private val stockWatchlistRepository: StockWatchlistRepository,
+    private val alphaVantageProvider: AlphaVantageProvider
 ) {
 
     /**
@@ -66,15 +67,23 @@ class StockWatchlistService(
      * Add a stock to watchlist
      */
     @Transactional
-    fun addStock(symbol: String, name: String? = null, fetchFrequencyHours: Int = 24): StockWatchlistEntity {
+    suspend fun addStock(symbol: String, name: String? = null, fetchFrequencyHours: Int = 24): StockWatchlistEntity {
         val existing = stockWatchlistRepository.findBySymbol(symbol)
         if (existing != null) {
             return existing
         }
 
+        // If name is not provided, try to fetch it from Alpha Vantage
+        val resolvedName = name ?: try {
+            alphaVantageProvider.fetchCompanyProfile(symbol)?.name
+        } catch (e: Exception) {
+            println("Failed to fetch company name for $symbol: ${e.message}")
+            null
+        }
+
         val stock = StockWatchlistEntity(
             symbol = symbol,
-            name = name,
+            name = resolvedName,
             active = true,
             fetchFrequencyHours = fetchFrequencyHours
         )

@@ -2,6 +2,7 @@ import React from 'react';
 import {Navigate, Route, Routes} from 'react-router-dom';
 import FundamentalAnalysisPage from '../pages/FundamentalAnalysisPage/FundamentalAnalysisPage';
 import WatchlistPage from '../pages/WatchlistPage/WatchlistPage';
+import GrowthScreeningPage from '../pages/GrowthScreeningPage/GrowthScreeningPage';
 
 const AppRoutes: React.FC = () => {
   return (
@@ -9,6 +10,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<Navigate to="/fundamental" replace />} />
       <Route path="/fundamental" element={<FundamentalAnalysisPage />} />
       <Route path="/watchlist" element={<WatchlistPage />} />
+      <Route path="/growth-screening" element={<GrowthScreeningPage />} />
       {/* Add more routes here as you build new pages */}
       {/* <Route path="/dashboard" element={<DashboardPage />} /> */}
       {/* <Route path="/settings" element={<SettingsPage />} /> */}

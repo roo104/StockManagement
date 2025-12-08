@@ -57,7 +57,7 @@ class StockWatchlistController(
      * Add stock to watchlist
      */
     @PostMapping
-    fun addStock(
+    suspend fun addStock(
         @RequestBody request: AddStockRequest
     ): ResponseEntity<StockWatchlistEntity> {
         val stock = stockWatchlistService.addStock(

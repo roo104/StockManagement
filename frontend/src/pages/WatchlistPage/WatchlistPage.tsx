@@ -11,7 +11,6 @@ const WatchlistPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [newSymbol, setNewSymbol] = useState('');
-  const [newName, setNewName] = useState('');
   const [addingStock, setAddingStock] = useState(false);
 
   useEffect(() => {
@@ -44,11 +43,9 @@ const WatchlistPage: React.FC = () => {
     try {
       await watchlistService.addStock({
         symbol: newSymbol.toUpperCase(),
-        name: newName.trim() || undefined,
         fetchFrequencyHours: 24,
       });
       setNewSymbol('');
-      setNewName('');
       await fetchWatchlist();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to add stock');
@@ -127,16 +124,8 @@ const WatchlistPage: React.FC = () => {
               className="symbol-input"
               disabled={addingStock}
             />
-            <input
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Company Name (optional)"
-              className="name-input"
-              disabled={addingStock}
-            />
             <button type="submit" disabled={addingStock || !newSymbol.trim()} className="add-button">
-              {addingStock ? 'Adding...' : 'Add Stock'}
+              {addingStock ? 'Adding and resolving name...' : 'Add Stock'}
             </button>
           </div>
         </form>

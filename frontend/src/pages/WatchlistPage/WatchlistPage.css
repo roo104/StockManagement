@@ -31,7 +31,7 @@
 }
 
 .symbol-input {
-  flex: 0 0 150px;
+  flex: 1;
   padding: 0.75rem;
   border: 1px solid #444;
   border-radius: 4px;
@@ -46,26 +46,11 @@
   border-color: #007bff;
 }
 
-.name-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #444;
-  border-radius: 4px;
-  font-size: 1rem;
-  background: #2a2a2a;
-  color: #e0e0e0;
-}
-
-.name-input:focus {
-  outline: none;
-  border-color: #007bff;
-}
-
 .add-button {
   padding: 0.75rem 1.5rem;
-  background: #007bff;
-  color: white;
-  border: none;
+  background: #444;
+  color: #e0e0e0;
+  border: 1px solid #555;
   border-radius: 4px;
   font-size: 1rem;
   cursor: pointer;
@@ -73,7 +58,7 @@
 }
 
 .add-button:hover:not(:disabled) {
-  background: #0056b3;
+  background: #555;
 }
 
 .add-button:disabled {
@@ -174,6 +159,7 @@
   gap: 0.5rem;
 }
 
+.fetch-button,
 .toggle-button,
 .remove-button {
   padding: 0.5rem 0.75rem;
@@ -184,20 +170,34 @@
   transition: background 0.2s;
 }
 
+.fetch-button {
+  background: #444;
+  color: #e0e0e0;
+  border: 1px solid #555;
+}
+
+.fetch-button:hover {
+  background: #555;
+}
+
 .toggle-button {
-  background: #ffc107;
+  background: #444;
+  color: #e0e0e0;
+  border: 1px solid #555;
 }
 
 .toggle-button:hover {
-  background: #e0a800;
+  background: #555;
 }
 
 .remove-button {
-  background: #dc3545;
+  background: #444;
+  color: #e0e0e0;
+  border: 1px solid #555;
 }
 
 .remove-button:hover {
-  background: #c82333;
+  background: #555;
 }
 
 @media (max-width: 768px) {
@@ -205,8 +205,8 @@
     flex-direction: column;
   }
 
-  .symbol-input {
-    flex: 1;
+  .symbol-input,
+  .add-button {
     width: 100%;
   }
 
