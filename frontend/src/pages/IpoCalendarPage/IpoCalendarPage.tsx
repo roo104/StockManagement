@@ -91,7 +91,12 @@ const IpoCalendarPage: React.FC = () => {
             type="month"
             value={selectedMonth}
             onChange={handleMonthChange}
+            onFocus={(e) => e.stopPropagation()}
             className="month-input"
+            autoComplete="off"
+            data-form-type="other"
+            min={`${new Date().getFullYear() - 1}-01`}
+            max={`${new Date().getFullYear() + 1}-12`}
           />
         </div>
         <button onClick={() => fetchIpoCalendar(selectedMonth)} className="refresh-button">

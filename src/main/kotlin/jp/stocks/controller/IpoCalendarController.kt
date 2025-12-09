@@ -44,6 +44,7 @@ class IpoCalendarController(
      * Get IPO calendar for a specific month
      * GET /api/ipo-calendar/month/{yearMonth}
      * Example: /api/ipo-calendar/month/2025-01
+     * Returns IPOs from database for the specified month
      */
     @GetMapping("/month/{yearMonth}")
     suspend fun getIpoCalendarForMonth(
@@ -54,12 +55,7 @@ class IpoCalendarController(
         return try {
             val ym = YearMonth.parse(yearMonth, DateTimeFormatter.ofPattern("yyyy-MM"))
             val calendar = ipoCalendarService.fetchIpoCalendarForMonth(ym)
-
-            if (calendar != null) {
-                ResponseEntity.ok(calendar)
-            } else {
-                ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).build()
-            }
+            ResponseEntity.ok(calendar)
         } catch (e: Exception) {
             logger.error("Error fetching IPO calendar for month $yearMonth: ${e.message}", e)
             ResponseEntity.status(HttpStatus.BAD_REQUEST).build()
