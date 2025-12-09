@@ -149,3 +149,24 @@ data class CompanyOverview(
     val yearlyEbitda: BigDecimal?,
     val yearlyEps: BigDecimal?
 )
+
+/**
+ * IPO Calendar Entry
+ */
+data class IpoCalendarEntry(
+    val symbol: String,
+    val name: String,
+    val ipoDate: LocalDate,
+    val priceRangeLow: BigDecimal?,
+    val priceRangeHigh: BigDecimal?,
+    val currency: String,
+    val exchange: String?
+)
+
+/**
+ * IPO Calendar Response
+ */
+data class IpoCalendar(
+    val month: String, // Format: YYYY-MM
+    val ipos: List<IpoCalendarEntry>
+)
