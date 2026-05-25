@@ -48,6 +48,10 @@ class IpoCalendarService(
 
             // Store IPOs in database
             if (calendar != null) {
+                logger.info("Fetched ${calendar.ipos.size} IPOs from Alpha Vantage:")
+                calendar.ipos.forEach { ipo ->
+                    logger.info("  - ${ipo.symbol} (${ipo.name}) on ${ipo.ipoDate} [${ipo.exchange ?: "n/a"}] ${ipo.priceRangeLow ?: "?"}-${ipo.priceRangeHigh ?: "?"} ${ipo.currency}")
+                }
                 storeIposInDatabase(calendar.ipos)
             }
 
@@ -59,18 +63,10 @@ class IpoCalendarService(
     }
 
     /**
-     * Fetch IPO calendar for a specific month
-     * First tries to refresh from API, then queries database for all IPOs in that month
+     * Read IPO calendar for a specific month from the database only.
+     * Does NOT call Alpha Vantage — use [fetchIpoCalendar] to refresh upstream data.
      */
-    suspend fun fetchIpoCalendarForMonth(yearMonth: YearMonth): IpoCalendar {
-        // Try to fetch latest data from API (will be stored in DB)
-        try {
-            fetchIpoCalendar()
-        } catch (e: Exception) {
-            logger.warn("Could not refresh IPO data from API: ${e.message}")
-        }
-
-        // Query database for IPOs in the specified month
+    fun getIpoCalendarForMonth(yearMonth: YearMonth): IpoCalendar {
         val monthStr = yearMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"))
         val ipos = ipoRepository.findByYearAndMonth(yearMonth.year, yearMonth.monthValue)
 
@@ -88,19 +84,33 @@ class IpoCalendarService(
      */
     private fun parseIpoCalendar(csvResponse: String): IpoCalendar? {
         return try {
-            val lines = csvResponse.lines().filter { it.isNotBlank() }
-            if (lines.isEmpty()) {
+            val trimmed = csvResponse.trimStart()
+            if (trimmed.isEmpty()) {
                 logger.warn("Empty IPO calendar response")
                 return null
             }
 
-            // Check for API error messages
-            if (lines.first().contains("Error Message") || lines.first().contains("Note")) {
+            // Alpha Vantage returns JSON (not CSV) for errors and rate-limit messages,
+            // e.g. {"Information": "Thank you for using Alpha Vantage! ..."}
+            if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                logger.warn("Alpha Vantage returned non-CSV response (likely rate-limited or error): ${trimmed.take(300)}")
+                return null
+            }
+
+            val lines = trimmed.lines().filter { it.isNotBlank() }
+
+            // Sanity-check the header — expected: symbol,name,ipoDate,...
+            val header = lines.first()
+            if (!header.contains("symbol", ignoreCase = true) || !header.contains("ipoDate", ignoreCase = true)) {
+                logger.warn("Unexpected IPO calendar response header: ${header.take(200)}")
+                return null
+            }
+
+            if (lines.first().contains("Error Message") || lines.first().contains("Note") || lines.first().contains("Information")) {
                 logger.warn("API error or rate limit: ${lines.first()}")
                 return null
             }
 
-            // First line is header
             val entries = mutableListOf<IpoCalendarEntry>()
 
             for (i in 1 until lines.size) {

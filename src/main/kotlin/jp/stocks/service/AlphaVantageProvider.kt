@@ -68,18 +68,24 @@ class AlphaVantageProvider(
     private fun parseEarningsCalendar(csvResponse: String): LocalDate? {
         return try {
             val lines = csvResponse.lines()
+                .map { it.trim().removePrefix("﻿") }
+                .filter { it.isNotEmpty() }
             if (lines.size < 2) return null
 
-            // First line is header, second line is the most recent/upcoming earnings
-            val dataLine = lines[1]
-            val fields = dataLine.split(",")
+            val header = lines[0].split(",").map { it.trim() }
+            val reportDateIdx = header.indexOfFirst { it.equals("reportDate", ignoreCase = true) }
+                .takeIf { it >= 0 } ?: 2
 
-            // reportDate is the 3rd field (index 2) based on API docs
-            if (fields.size >= 3) {
-                LocalDate.parse(fields[2])
-            } else {
-                null
+            val isoDate = Regex("""^\d{4}-\d{2}-\d{2}$""")
+            for (i in 1 until lines.size) {
+                val fields = lines[i].split(",")
+                val value = fields.getOrNull(reportDateIdx)?.trim() ?: continue
+                if (isoDate.matches(value)) {
+                    return LocalDate.parse(value)
+                }
             }
+            logger.debug("No valid report date found in earnings calendar response")
+            null
         } catch (e: Exception) {
             logger.error("Error parsing earnings calendar CSV: ${e.message}", e)
             null
@@ -292,7 +298,7 @@ class AlphaVantageProvider(
 
     @Suppress("UNCHECKED_CAST")
     private fun parseCashFlowStatement(symbol: String, response: Map<String, Any>): CashFlowStatement? {
-        logger.debug("Cash flow response for $symbol: $response")
+        logger.trace("Cash flow response for $symbol: $response")
         val annualReports = response["annualReports"] as? List<Map<String, Any>>
         if (annualReports.isNullOrEmpty()) {
             logger.warn("No annual reports found for $symbol in cash flow response. Response keys: ${response.keys}")
