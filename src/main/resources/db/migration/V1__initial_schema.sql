@@ -1,6 +1,6 @@
 -- Income Statements Table
 CREATE TABLE income_statements (
-    id BIGSERIAL PRIMARY KEY,
+                                   id BIGINT AUTO_INCREMENT PRIMARY KEY,
     symbol VARCHAR(10) NOT NULL,
     fiscal_date_ending DATE NOT NULL,
     reported_currency VARCHAR(3) NOT NULL,
@@ -26,7 +26,7 @@ CREATE INDEX idx_income_statements_date ON income_statements(fiscal_date_ending)
 
 -- Balance Sheets Table
 CREATE TABLE balance_sheets (
-    id BIGSERIAL PRIMARY KEY,
+                                id BIGINT AUTO_INCREMENT PRIMARY KEY,
     symbol VARCHAR(10) NOT NULL,
     fiscal_date_ending DATE NOT NULL,
     reported_currency VARCHAR(3) NOT NULL,
@@ -54,7 +54,7 @@ CREATE INDEX idx_balance_sheets_date ON balance_sheets(fiscal_date_ending);
 
 -- Cash Flow Statements Table
 CREATE TABLE cash_flow_statements (
-    id BIGSERIAL PRIMARY KEY,
+                                      id BIGINT AUTO_INCREMENT PRIMARY KEY,
     symbol VARCHAR(10) NOT NULL,
     fiscal_date_ending DATE NOT NULL,
     reported_currency VARCHAR(3) NOT NULL,
@@ -75,7 +75,7 @@ CREATE INDEX idx_cash_flow_statements_date ON cash_flow_statements(fiscal_date_e
 
 -- Company Overviews Table
 CREATE TABLE company_overviews (
-    id BIGSERIAL PRIMARY KEY,
+                                   id BIGINT AUTO_INCREMENT PRIMARY KEY,
     symbol VARCHAR(10) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -99,11 +99,11 @@ CREATE INDEX idx_company_overviews_industry ON company_overviews(industry);
 
 -- Stock Watchlist Table
 CREATE TABLE stock_watchlist (
-    id BIGSERIAL PRIMARY KEY,
+                                 id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     symbol VARCHAR(10) NOT NULL UNIQUE,
     name VARCHAR(255),
     active BOOLEAN NOT NULL DEFAULT TRUE,
-    last_fetched_at TIMESTAMP,
+                                 last_fetched_at TIMESTAMP NULL,
     fetch_frequency_hours INT NOT NULL DEFAULT 24,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
