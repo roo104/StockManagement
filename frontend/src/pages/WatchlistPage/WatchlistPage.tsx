@@ -1,215 +1,259 @@
-import React, {useEffect, useState} from 'react';
-import {useNavigate} from 'react-router-dom';
-import {watchlistService} from '../../api/watchlistService';
-import {StockWatchlist} from '../../types/Watchlist';
-import ErrorMessage from '../../components/common/ErrorMessage';
-import './WatchlistPage.css';
+import * as React from 'react';
+import {Link} from 'react-router-dom';
+import {
+    MoreHorizontal,
+    RefreshCw,
+    Trash2,
+    Pause,
+    Play,
+    Plus,
+    Star,
+    ExternalLink,
+    Newspaper,
+} from 'lucide-react';
+import {watchlistService} from '@/api/watchlistService';
+import type {StockWatchlist} from '@/types/Watchlist';
+import {NewsSourcesSheet} from '@/components/NewsSourcesSheet';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Badge} from '@/components/ui/badge';
+import {Card, CardContent, CardHeader, CardTitle, CardDescription} from '@/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {Skeleton} from '@/components/ui/skeleton';
+import {EmptyState} from '@/components/ui/empty-state';
+import {toast} from '@/components/ui/toaster';
 
-const WatchlistPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [stocks, setStocks] = useState<StockWatchlist[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [newSymbol, setNewSymbol] = useState('');
-  const [addingStock, setAddingStock] = useState(false);
+function formatDate(dateString: string | undefined) {
+    if (!dateString) return 'Never';
+    return new Date(dateString).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+    });
+}
 
-  useEffect(() => {
-    fetchWatchlist();
-  }, []);
+export default function WatchlistPage() {
+    const [stocks, setStocks] = React.useState<StockWatchlist[]>([]);
+    const [loading, setLoading] = React.useState(true);
+    const [newSymbol, setNewSymbol] = React.useState('');
+    const [adding, setAdding] = React.useState(false);
+    const [newsSymbol, setNewsSymbol] = React.useState<string | null>(null);
 
-  const fetchWatchlist = async () => {
+    const refresh = React.useCallback(async () => {
     setLoading(true);
-    setError('');
     try {
       const data = await watchlistService.getAllStocks();
       setStocks(data);
     } catch (err) {
-      setError('Failed to load watchlist');
-      console.error('Error fetching watchlist:', err);
+        toast.error('Failed to load watchlist');
+        console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+    }, []);
 
-  const handleAddStock = async (e: React.FormEvent) => {
+    React.useEffect(() => {
+        void refresh();
+    }, [refresh]);
+
+    const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSymbol.trim()) {
-      setError('Please enter a stock symbol');
-      return;
-    }
-
-    setAddingStock(true);
-    setError('');
+        const symbol = newSymbol.trim().toUpperCase();
+        if (!symbol) return;
+        setAdding(true);
     try {
-      await watchlistService.addStock({
-        symbol: newSymbol.toUpperCase(),
-        fetchFrequencyHours: 24,
-      });
+        await watchlistService.addStock({symbol, fetchFrequencyHours: 24});
       setNewSymbol('');
-      await fetchWatchlist();
+        toast.success(`Added ${symbol} to watchlist`);
+        await refresh();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to add stock');
-      console.error('Error adding stock:', err);
+        toast.error(err?.response?.data?.message ?? `Failed to add ${symbol}`);
     } finally {
-      setAddingStock(false);
+        setAdding(false);
     }
   };
 
-  const handleRemoveStock = async (symbol: string) => {
-    if (!window.confirm(`Are you sure you want to remove ${symbol} from watchlist?`)) {
-      return;
-    }
-
+    const handleRemove = async (symbol: string) => {
+        if (!window.confirm(`Remove ${symbol} from watchlist?`)) return;
     try {
       await watchlistService.removeStock(symbol);
-      await fetchWatchlist();
-    } catch (err) {
-      setError(`Failed to remove ${symbol}`);
-      console.error('Error removing stock:', err);
+        toast.success(`Removed ${symbol}`);
+        await refresh();
+    } catch {
+        toast.error(`Failed to remove ${symbol}`);
     }
   };
 
-  const handleToggleActive = async (symbol: string, currentActive: boolean) => {
+    const handleToggle = async (symbol: string, currentlyActive: boolean) => {
     try {
-      if (currentActive) {
+        if (currentlyActive) {
         await watchlistService.deactivateStock(symbol);
+            toast.success(`Paused ${symbol}`);
       } else {
         await watchlistService.activateStock(symbol);
+            toast.success(`Activated ${symbol}`);
       }
-      await fetchWatchlist();
-    } catch (err) {
-      setError(`Failed to ${currentActive ? 'deactivate' : 'activate'} ${symbol}`);
-      console.error('Error toggling stock status:', err);
+        await refresh();
+    } catch {
+        toast.error(`Failed to update ${symbol}`);
     }
   };
 
-  const handleStockClick = (symbol: string) => {
-    navigate(`/fundamental?symbol=${symbol}`);
-  };
-
-  const handleFetchData = async (symbol: string) => {
+    const handleFetch = async (symbol: string) => {
     try {
       await watchlistService.fetchStock(symbol);
-      await fetchWatchlist();
-    } catch (err) {
-      setError(`Failed to fetch data for ${symbol}`);
-      console.error('Error fetching stock data:', err);
+        toast.success(`Refreshed ${symbol}`);
+        await refresh();
+    } catch {
+        toast.error(`Failed to refresh ${symbol}`);
     }
-  };
-
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   return (
-    <div className="watchlist-page">
-      <h1>Stock Watchlist</h1>
+      <div className="space-y-6">
+          <div>
+              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Watchlist</h1>
+              <p className="mt-1 text-sm text-[color:var(--color-fg-muted)]">
+                  Track tickers and refresh their fundamental data on demand.
+              </p>
+          </div>
 
-      <div className="add-stock-form">
-        <h2>Add Stock to Watchlist</h2>
-        <form onSubmit={handleAddStock}>
-          <div className="form-row">
-            <input
-              type="text"
+          <Card>
+              <CardHeader>
+                  <CardTitle className="text-base">Add a ticker</CardTitle>
+                  <CardDescription>The symbol will be resolved against your data provider.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <form className="flex flex-col gap-3 sm:flex-row" onSubmit={handleAdd}>
+                      <Input
               value={newSymbol}
               onChange={(e) => setNewSymbol(e.target.value.toUpperCase())}
-              placeholder="Symbol (e.g., AAPL)"
-              className="symbol-input"
-              disabled={addingStock}
+              placeholder="e.g. AAPL"
+              className="sm:max-w-xs font-mono"
+              disabled={adding}
+              aria-label="Stock symbol"
             />
-            <button type="submit" disabled={addingStock || !newSymbol.trim()} className="add-button">
-              {addingStock ? 'Adding and resolving name...' : 'Add Stock'}
-            </button>
-          </div>
-        </form>
-      </div>
+                      <Button type="submit" disabled={adding || !newSymbol.trim()}>
+                          <Plus className="h-4 w-4"/>
+                          {adding ? 'Adding…' : 'Add to watchlist'}
+                      </Button>
+                  </form>
+              </CardContent>
+          </Card>
 
-      <ErrorMessage message={error} />
-
-      {loading && <div className="loading">Loading watchlist...</div>}
-
-      {!loading && stocks.length === 0 && (
-        <div className="empty-state">
-          <p>No stocks in watchlist. Add some stocks to get started!</p>
-        </div>
-      )}
-
-      {!loading && stocks.length > 0 && (
-        <div className="watchlist-table-container">
-          <table className="watchlist-table">
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Updated At</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+          {loading ? (
+              <div className="space-y-2">
+                  <Skeleton className="h-12 w-full"/>
+                  <Skeleton className="h-12 w-full"/>
+                  <Skeleton className="h-12 w-full"/>
+              </div>
+          ) : stocks.length === 0 ? (
+              <EmptyState
+                  icon={<Star/>}
+                  title="Your watchlist is empty"
+                  description="Add a ticker above or press ⌘K to look one up."
+              />
+          ) : (
+              <Card className="overflow-hidden">
+                  <Table>
+                      <TableHeader>
+                          <TableRow>
+                              <TableHead className="w-28">Symbol</TableHead>
+                              <TableHead>Name</TableHead>
+                              <TableHead className="w-28">Status</TableHead>
+                              <TableHead className="w-44">Last update</TableHead>
+                              <TableHead className="w-12 text-right"/>
+                          </TableRow>
+                      </TableHeader>
+                      <TableBody>
               {stocks.map((stock) => (
-                <tr
+                  <TableRow
                   key={stock.symbol}
-                  className={`clickable-row ${!stock.active ? 'inactive' : ''}`}
-                  onClick={() => handleStockClick(stock.symbol)}
+                  className={!stock.active ? 'opacity-60' : ''}
                 >
-                  <td className="symbol-cell">
-                    <strong>{stock.symbol}</strong>
-                  </td>
-                  <td>{stock.name || '-'}</td>
-                  <td>
-                    <span className={`status-badge ${stock.active ? 'active' : 'inactive'}`}>
-                      {stock.active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td>{formatDate(stock.lastFetchedAt)}</td>
-                  <td className="actions-cell">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleFetchData(stock.symbol);
-                      }}
-                      className="fetch-button"
-                      title="Fetch data from provider"
+                      <TableCell>
+                          <Link
+                              to={`/analysis/${encodeURIComponent(stock.symbol)}`}
+                              className="group inline-flex items-center gap-1.5 font-mono font-semibold text-[color:var(--color-fg)] hover:text-[color:var(--color-brand-cyan)]"
                     >
-                      🔄
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleToggleActive(stock.symbol, stock.active);
-                      }}
-                      className="toggle-button"
-                      title={stock.active ? 'Deactivate' : 'Activate'}
-                    >
-                      {stock.active ? '⏸' : '▶'}
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveStock(stock.symbol);
-                      }}
-                      className="remove-button"
-                      title="Remove from watchlist"
-                    >
-                      🗑
-                    </button>
-                  </td>
-                </tr>
+                              {stock.symbol}
+                              <ExternalLink className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100"/>
+                          </Link>
+                      </TableCell>
+                      <TableCell className="text-[color:var(--color-fg-muted)]">
+                          {stock.name || '—'}
+                      </TableCell>
+                      <TableCell>
+                          <Badge variant={stock.active ? 'success' : 'secondary'}>
+                              {stock.active ? 'Active' : 'Paused'}
+                          </Badge>
+                      </TableCell>
+                      <TableCell className="text-[color:var(--color-fg-muted)] text-xs font-mono">
+                          {formatDate(stock.lastFetchedAt)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                          <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Row actions">
+                                      <MoreHorizontal className="h-4 w-4"/>
+                                  </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onSelect={() => handleFetch(stock.symbol)}>
+                                      <RefreshCw/>
+                                      Refresh data
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onSelect={() => setNewsSymbol(stock.symbol)}>
+                                      <Newspaper/>
+                                      News &amp; sources
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                      onSelect={() => handleToggle(stock.symbol, stock.active)}
+                                  >
+                                      {stock.active ? <Pause/> : <Play/>}
+                                      {stock.active ? 'Pause tracking' : 'Resume tracking'}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator/>
+                                  <DropdownMenuItem
+                                      onSelect={() => handleRemove(stock.symbol)}
+                                      className="text-[color:var(--color-danger)] focus:text-[color:var(--color-danger)]"
+                                  >
+                                      <Trash2/>
+                                      Remove
+                                  </DropdownMenuItem>
+                              </DropdownMenuContent>
+                          </DropdownMenu>
+                      </TableCell>
+                  </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                      </TableBody>
+                  </Table>
+              </Card>
+          )}
+
+          <NewsSourcesSheet
+              symbol={newsSymbol ?? ''}
+              open={!!newsSymbol}
+              onOpenChange={(o) => {
+                  if (!o) setNewsSymbol(null);
+              }}
+          />
     </div>
   );
-};
-
-export default WatchlistPage;
+}

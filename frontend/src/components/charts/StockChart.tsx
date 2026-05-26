@@ -1,10 +1,20 @@
-import React, {useRef} from 'react';
-import {CategoryScale, Chart as ChartJS, Legend, LinearScale, LineElement, PointElement, TimeScale, Title, Tooltip,} from 'chart.js';
+import {useRef} from 'react';
+import {
+    CategoryScale,
+    Chart as ChartJS,
+    Legend,
+    LinearScale,
+    LineElement,
+    PointElement,
+    TimeScale,
+    Title,
+    Tooltip,
+} from 'chart.js';
 import {Chart} from 'react-chartjs-2';
 import 'chartjs-adapter-date-fns';
 import {CandlestickController, CandlestickElement} from 'chartjs-chart-financial';
-import {OhlcData} from '../../types/OhlcData';
-import './StockChart.css';
+import {OhlcData} from '@/types/OhlcData';
+import {getChartTheme} from '@/lib/chart-theme';
 
 ChartJS.register(
   CategoryScale,
@@ -24,20 +34,21 @@ interface StockChartProps {
   symbol: string;
 }
 
-const StockChart: React.FC<StockChartProps> = ({ data, symbol }) => {
+export default function StockChart({data, symbol}: StockChartProps) {
   const chartRef = useRef<ChartJS>(null);
+    const theme = getChartTheme();
 
-  const chartData = data.map(item => ({
+    const chartData = data.map((item) => ({
     x: new Date(item.date + 'T00:00:00').getTime(),
     o: item.open,
     h: item.high,
     l: item.low,
-    c: item.close
+        c: item.close,
   }));
 
-  const lineData = data.map(item => ({
+    const lineData = data.map((item) => ({
     x: new Date(item.date + 'T00:00:00').getTime(),
-    y: item.close
+        y: item.close,
   }));
 
   const config = {
@@ -48,14 +59,24 @@ const StockChart: React.FC<StockChartProps> = ({ data, symbol }) => {
           label: `${symbol} OHLC`,
           type: 'candlestick' as const,
           data: chartData,
-        },
+            borderColors: {
+                up: theme.success,
+                down: theme.danger,
+                unchanged: theme.textMuted,
+            },
+            backgroundColors: {
+                up: theme.success,
+                down: theme.danger,
+                unchanged: theme.textMuted,
+            },
+        } as any,
         {
-          label: `${symbol} Close Price`,
+            label: `${symbol} Close`,
           type: 'line' as const,
           data: lineData,
-          borderColor: 'rgb(75, 192, 192)',
-          backgroundColor: 'rgba(75, 192, 192, 0.1)',
-          borderWidth: 2,
+            borderColor: theme.line,
+            backgroundColor: theme.line + '20',
+            borderWidth: 1.5,
           pointRadius: 0,
           pointHoverRadius: 4,
           tension: 0.1,
@@ -69,27 +90,23 @@ const StockChart: React.FC<StockChartProps> = ({ data, symbol }) => {
         legend: {
           display: true,
           position: 'top' as const,
-          labels: {
-            color: '#f0f0f0',
-          },
+            labels: {color: theme.text},
         },
-        title: {
-          display: true,
-          text: `${symbol} - OHLC Chart`,
-          font: {
-            size: 16,
-          },
-          color: '#f0f0f0',
-        },
+          title: {display: false},
         tooltip: {
+            backgroundColor: 'rgba(27, 27, 31, 0.95)',
+            borderColor: theme.grid,
+            borderWidth: 1,
+            titleColor: theme.text,
+            bodyColor: theme.text,
           callbacks: {
-            label: function (context: any) {
+              label(context: any) {
               const point = context.raw;
               if (point.o !== undefined) {
                 return [
-                  `Open: $${point.o.toFixed(2)}`,
-                  `High: $${point.h.toFixed(2)}`,
-                  `Low: $${point.l.toFixed(2)}`,
+                    `Open:  $${point.o.toFixed(2)}`,
+                    `High:  $${point.h.toFixed(2)}`,
+                    `Low:   $${point.l.toFixed(2)}`,
                   `Close: $${point.c.toFixed(2)}`,
                 ];
               }
@@ -103,40 +120,27 @@ const StockChart: React.FC<StockChartProps> = ({ data, symbol }) => {
           type: 'time' as const,
           time: {
             minUnit: 'day' as const,
-            displayFormats: {
-              day: 'MMM d',
-              week: 'MMM d',
-              month: 'MMM d',
-            },
+              displayFormats: {day: 'MMM d', week: 'MMM d', month: 'MMM yy'},
           },
-          title: {
-            display: true,
-            text: 'Date',
-            color: '#f0f0f0',
-          },
+            title: {display: false},
           ticks: {
             autoSkip: true,
             maxTicksLimit: 10,
-            maxRotation: 45,
-            minRotation: 0,
-            color: '#b0b0b0',
+              maxRotation: 0,
+              color: theme.textMuted,
+              font: {family: 'JetBrains Mono, monospace'},
           },
-          grid: {
-            color: '#444',
-          },
+            grid: {color: theme.grid, drawTicks: false},
+            border: {display: false},
         },
         y: {
-          title: {
-            display: true,
-            text: 'Price ($)',
-            color: '#f0f0f0',
-          },
+            title: {display: false},
           ticks: {
-            color: '#b0b0b0',
+              color: theme.textMuted,
+              font: {family: 'JetBrains Mono, monospace'},
           },
-          grid: {
-            color: '#444',
-          },
+            grid: {color: theme.grid, drawTicks: false},
+            border: {display: false},
           beginAtZero: false,
         },
       },
@@ -150,10 +154,8 @@ const StockChart: React.FC<StockChartProps> = ({ data, symbol }) => {
   };
 
   return (
-    <div className="chart-container">
+      <div className="relative h-[28rem] w-full">
       <Chart ref={chartRef} {...config} />
     </div>
   );
-};
-
-export default StockChart;
+}

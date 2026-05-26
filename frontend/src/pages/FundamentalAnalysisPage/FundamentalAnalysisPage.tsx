@@ -1,666 +1,619 @@
-import React, {useEffect, useState} from 'react';
-import {useSearchParams} from 'react-router-dom';
-import {fundamentalService} from '../../api/fundamentalService';
-import {stockService} from '../../api/stockService';
-import {BalanceSheet, CashFlowStatement, CompanyOverview, FinancialStatements, IncomeStatement, ValuationMetrics,} from '../../types/FundamentalAnalysis';
-import {OhlcData} from '../../types/OhlcData';
-import ErrorMessage from '../../components/common/ErrorMessage';
-import StockChart from '../../components/charts/StockChart';
-import {formatCurrency, formatDate, formatNumber, formatPercent} from '../../utils/formatters';
-import './FundamentalAnalysisPage.css';
+import * as React from 'react';
+import {useNavigate, useParams, useSearchParams} from 'react-router-dom';
+import {Download, RefreshCw, Search, AlertTriangle} from 'lucide-react';
+import {fundamentalService} from '@/api/fundamentalService';
+import {stockService} from '@/api/stockService';
+import {
+    BalanceSheet,
+    CashFlowStatement,
+    CompanyOverview,
+    FinancialStatements,
+    IncomeStatement,
+    ValuationMetrics,
+} from '@/types/FundamentalAnalysis';
+import {OhlcData} from '@/types/OhlcData';
+import StockChart from '@/components/charts/StockChart';
+import {formatCurrency, formatDate, formatNumber, formatPercent} from '@/utils/formatters';
+import {pushRecentSymbol} from '@/lib/recent-symbols';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Badge} from '@/components/ui/badge';
+import {Card, CardContent, CardHeader, CardTitle, CardDescription} from '@/components/ui/card';
+import {Tabs, TabsList, TabsTrigger, TabsContent} from '@/components/ui/tabs';
+import {Skeleton} from '@/components/ui/skeleton';
+import {EmptyState} from '@/components/ui/empty-state';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import {toast} from '@/components/ui/toaster';
 
-const FundamentalAnalysisPage: React.FC = () => {
+interface MetricRowProps {
+    label: string;
+    value: React.ReactNode;
+}
+
+function MetricRow({label, value}: MetricRowProps) {
+    return (
+        <div className="flex items-baseline justify-between gap-3 border-b border-[color:var(--color-border-soft)] py-2 last:border-0">
+            <span className="text-sm text-[color:var(--color-fg-muted)]">{label}</span>
+            <span className="font-mono text-sm font-semibold tabular-nums text-[color:var(--color-fg)]">
+        {value}
+      </span>
+        </div>
+    );
+}
+
+const PERIODS = ['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', 'max'];
+const INTERVALS = ['1m', '5m', '15m', '30m', '1h', '1d', '1wk', '1mo'];
+
+export default function FundamentalAnalysisPage() {
+    const {symbol: pathSymbol} = useParams<{ symbol?: string }>();
   const [searchParams] = useSearchParams();
-  const symbolParam = searchParams.get('symbol');
+    const querySymbol = searchParams.get('symbol');
+    const navigate = useNavigate();
 
-  const [symbol, setSymbol] = useState(symbolParam || 'AAPL');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'statements' | 'valuation' | 'history' | 'chart'>('overview');
+    const initialSymbol = (pathSymbol ?? querySymbol ?? 'AAPL').toUpperCase();
+    const [symbol, setSymbol] = React.useState(initialSymbol);
+    const [input, setInput] = React.useState(initialSymbol);
 
-  const [companyOverview, setCompanyOverview] = useState<CompanyOverview | null>(null);
-  const [financialStatements, setFinancialStatements] = useState<FinancialStatements | null>(null);
-  const [valuationMetrics, setValuationMetrics] = useState<ValuationMetrics | null>(null);
-  const [incomeStatements, setIncomeStatements] = useState<IncomeStatement[]>([]);
-  const [balanceSheets, setBalanceSheets] = useState<BalanceSheet[]>([]);
-  const [cashFlowStatements, setCashFlowStatements] = useState<CashFlowStatement[]>([]);
-  const [ohlcData, setOhlcData] = useState<OhlcData[]>([]);
-  const [chartLoaded, setChartLoaded] = useState(false);
-  const [chartLoading, setChartLoading] = useState(false);
-  const [chartPeriod, setChartPeriod] = useState('1y');
-  const [chartInterval, setChartInterval] = useState('1d');
+    const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState('');
 
-  const fetchAllData = async () => {
-    if (!symbol.trim()) {
-      setError('Please enter a stock symbol');
-      return;
+    const [companyOverview, setCompanyOverview] = React.useState<CompanyOverview | null>(null);
+    const [financialStatements, setFinancialStatements] = React.useState<FinancialStatements | null>(null);
+    const [valuationMetrics, setValuationMetrics] = React.useState<ValuationMetrics | null>(null);
+    const [incomeStatements, setIncomeStatements] = React.useState<IncomeStatement[]>([]);
+    const [balanceSheets, setBalanceSheets] = React.useState<BalanceSheet[]>([]);
+    const [cashFlowStatements, setCashFlowStatements] = React.useState<CashFlowStatement[]>([]);
+
+    const [tab, setTab] = React.useState<'overview' | 'statements' | 'valuation' | 'history' | 'chart'>('overview');
+    const [ohlcData, setOhlcData] = React.useState<OhlcData[]>([]);
+    const [chartLoaded, setChartLoaded] = React.useState(false);
+    const [chartLoading, setChartLoading] = React.useState(false);
+    const [chartPeriod, setChartPeriod] = React.useState('1y');
+    const [chartInterval, setChartInterval] = React.useState('1d');
+
+    React.useEffect(() => {
+        const next = (pathSymbol ?? querySymbol ?? '').toUpperCase();
+        if (next && next !== symbol) {
+            setSymbol(next);
+            setInput(next);
     }
+    }, [pathSymbol, querySymbol]);
 
+    const fetchAllData = React.useCallback(async (sym: string) => {
+        if (!sym.trim()) return;
     setLoading(true);
     setError('');
-
     try {
-      // Fetch company overview
-      const overview = await fundamentalService.getCompanyOverview(symbol);
+        const overview = await fundamentalService.getCompanyOverview(sym);
       setCompanyOverview(overview);
-
-      // Fetch latest financial statements
-      const statements = await fundamentalService.getLatestFinancialStatements(symbol);
+        const statements = await fundamentalService.getLatestFinancialStatements(sym);
       setFinancialStatements(statements);
-
-      // Fetch valuation metrics (using market cap as current price approximation)
       const currentPrice = overview.marketCap / overview.sharesOutstanding;
-      const valuation = await fundamentalService.getValuationMetrics(symbol, currentPrice);
+        const valuation = await fundamentalService.getValuationMetrics(sym, currentPrice);
       setValuationMetrics(valuation);
-
-      // Fetch historical data
-      const incomeHistory = await fundamentalService.getIncomeStatements(symbol);
+        const incomeHistory = await fundamentalService.getIncomeStatements(sym);
       setIncomeStatements(incomeHistory);
-
-      const balanceHistory = await fundamentalService.getBalanceSheets(symbol);
+        const balanceHistory = await fundamentalService.getBalanceSheets(sym);
       setBalanceSheets(balanceHistory);
-
-      const cashFlowHistory = await fundamentalService.getCashFlowStatements(symbol);
+        const cashFlowHistory = await fundamentalService.getCashFlowStatements(sym);
       setCashFlowStatements(cashFlowHistory);
+        pushRecentSymbol(sym);
     } catch (err) {
-      setError(`No data found for ${symbol}. Try fetching data using the "Fetch from Provider" button.`);
-      console.error('Error fetching fundamental data:', err);
+        setError(`No data found for ${sym}. Try "Fetch from provider" below.`);
+        console.error(err);
+        setCompanyOverview(null);
+        setFinancialStatements(null);
+        setValuationMetrics(null);
+        setIncomeStatements([]);
+        setBalanceSheets([]);
+        setCashFlowStatements([]);
     } finally {
       setLoading(false);
     }
-  };
+    }, []);
 
-  const fetchDataFromYahoo = async () => {
-    if (!symbol.trim()) {
-      setError('Please enter a stock symbol');
-      return;
+    React.useEffect(() => {
+        void fetchAllData(symbol);
+        setChartLoaded(false);
+        setOhlcData([]);
+    }, [symbol, fetchAllData]);
+
+    const fetchChartData = React.useCallback(async () => {
+        if (!symbol) return;
+        setChartLoading(true);
+        try {
+            const data = await stockService.getOhlcData({symbol, period: chartPeriod, interval: chartInterval});
+            setOhlcData(data);
+            setChartLoaded(true);
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to load chart data');
+        } finally {
+            setChartLoading(false);
     }
+    }, [symbol, chartPeriod, chartInterval]);
 
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const next = input.trim().toUpperCase();
+        if (!next) return;
+        navigate(`/analysis/${encodeURIComponent(next)}`);
+    };
+
+    const handleProviderFetch = async () => {
     setLoading(true);
     setError('');
-
     try {
       const result = await fundamentalService.fetchFundamentalData(symbol);
       if (result.success) {
-        // Refresh data after successful fetch
-        await fetchAllData();
+          toast.success(`Fetched ${symbol} from provider`);
+          await fetchAllData(symbol);
       } else {
         setError(result.message);
       }
     } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch data from Yahoo Finance';
-      if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || errorMsg.includes('authentication')) {
-        setError('⚠️ Yahoo Finance API requires authentication tokens. The free API endpoint is restricted. You can: (1) Use the manual data entry endpoints in the API docs, or (2) Integrate a paid provider like Alpha Vantage, Financial Modeling Prep, or Polygon.io.');
-      } else {
-        setError(errorMsg);
-      }
-      console.error('Error fetching from Yahoo:', err);
+        const msg = err instanceof Error ? err.message : 'Failed to fetch from provider';
+        setError(
+            msg.includes('401') || msg.toLowerCase().includes('unauthorized')
+                ? 'Provider requires authentication. Configure a paid provider (Alpha Vantage, FMP, Polygon).'
+                : msg
+        );
+        console.error(err);
+    } finally {
       setLoading(false);
     }
   };
 
-  const fetchChartData = async () => {
-    if (!symbol.trim()) return;
-
-    setChartLoading(true);
-    try {
-      const data = await stockService.getOhlcData({
-        symbol,
-        period: chartPeriod,
-        interval: chartInterval
-      });
-      setOhlcData(data);
-      setChartLoaded(true);
-    } catch (err) {
-      console.error('Error fetching chart data:', err);
-      setError('Failed to load chart data');
-    } finally {
-      setChartLoading(false);
-    }
+    const onTabChange = (value: string) => {
+        setTab(value as typeof tab);
+        if (value === 'chart' && !chartLoaded) void fetchChartData();
   };
-
-  const handleTabChange = (tab: 'overview' | 'statements' | 'valuation' | 'history' | 'chart') => {
-    setActiveTab(tab);
-    // Lazy load chart data when chart tab is first activated
-    if (tab === 'chart' && !chartLoaded) {
-      fetchChartData();
-    }
-  };
-
-  useEffect(() => {
-    if (symbolParam) {
-      setSymbol(symbolParam);
-    }
-  }, [symbolParam]);
-
-  useEffect(() => {
-    fetchAllData();
-    // Reset chart data when symbol changes
-    setChartLoaded(false);
-    setOhlcData([]);
-    // If chart tab is active, fetch new chart data
-    if (activeTab === 'chart') {
-      fetchChartData();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbol]);
 
   return (
-    <div className="fundamental-analysis-page">
-      <h1>Analysis</h1>
+      <div className="space-y-6">
+          <header className="space-y-4">
+              <div className="flex flex-col gap-1">
+                  <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Fundamental Analysis</h1>
+                  <p className="text-sm text-[color:var(--color-fg-muted)]">
+                      Company overview, financial statements, valuation, and price history.
+                  </p>
+              </div>
 
-      <div className="controls">
-        <input
-          type="text"
-          value={symbol}
-          onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-          placeholder="Enter stock symbol"
-          className="symbol-input"
-        />
-        <button onClick={fetchAllData} disabled={loading} className="fetch-button">
-          {loading ? 'Loading...' : 'Fetch Data'}
-        </button>
-        <button onClick={fetchDataFromYahoo} disabled={loading} className="fetch-yahoo-button">
-          Fetch from Provider
-        </button>
-      </div>
+              <form onSubmit={handleSubmit} className="flex flex-col gap-2 sm:flex-row">
+                  <div className="relative sm:max-w-xs flex-1">
+                      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[color:var(--color-fg-subtle)]"/>
+                      <Input
+                          value={input}
+                          onChange={(e) => setInput(e.target.value.toUpperCase())}
+                          placeholder="Symbol (e.g. AAPL)"
+                          className="pl-9 font-mono"
+                          aria-label="Stock symbol"
+                      />
+                  </div>
+                  <Button type="submit" disabled={loading || !input.trim()}>
+                      {loading ? <RefreshCw className="h-4 w-4 animate-spin"/> : <Search className="h-4 w-4"/>}
+                      Load
+                  </Button>
+                  <Button type="button" variant="secondary" onClick={handleProviderFetch} disabled={loading}>
+                      <Download className="h-4 w-4"/>
+                      Fetch from provider
+                  </Button>
+              </form>
+          </header>
 
-      <ErrorMessage message={error} />
+          {error && (
+              <Card className="border-[rgba(244,63,94,0.4)] bg-[rgba(244,63,94,0.06)]">
+                  <CardContent className="flex items-start gap-3 p-4">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--color-danger)]"/>
+                      <p className="text-sm text-[color:var(--color-fg)]">{error}</p>
+                  </CardContent>
+              </Card>
+          )}
 
-      {loading && <div className="loading">Loading fundamental data...</div>}
-
-      {!loading && companyOverview && (
-        <>
-          <div className="company-header">
-            <h2>{companyOverview.name} ({companyOverview.symbol})</h2>
-            <div className="company-info">
-              {companyOverview.sector && <span className="badge">{companyOverview.sector}</span>}
-              {companyOverview.industry && <span className="badge">{companyOverview.industry}</span>}
-              {companyOverview.exchange && <span className="badge">{companyOverview.exchange}</span>}
-            </div>
+          {loading && !companyOverview ? (
+              <div className="space-y-4">
+                  <Skeleton className="h-20 w-full"/>
+                  <Skeleton className="h-10 w-64"/>
+                  <div className="grid gap-4 md:grid-cols-2">
+                      <Skeleton className="h-64 w-full"/>
+                      <Skeleton className="h-64 w-full"/>
           </div>
-
-          <div className="tabs">
-            <button
-              className={activeTab === 'overview' ? 'active' : ''}
-              onClick={() => handleTabChange('overview')}
-            >
-              Overview
-            </button>
-            <button
-              className={activeTab === 'statements' ? 'active' : ''}
-              onClick={() => handleTabChange('statements')}
-            >
-              Financial Statements
-            </button>
-            <button
-              className={activeTab === 'valuation' ? 'active' : ''}
-              onClick={() => handleTabChange('valuation')}
-            >
-              Valuation Metrics
-            </button>
-            <button
-              className={activeTab === 'history' ? 'active' : ''}
-              onClick={() => handleTabChange('history')}
-            >
-              Historical Data
-            </button>
-            <button
-              className={activeTab === 'chart' ? 'active' : ''}
-              onClick={() => handleTabChange('chart')}
-            >
-              Price Chart
-            </button>
-          </div>
-
-          <div className="tab-content">
-            {activeTab === 'overview' && (
-              <div className="overview-section">
-                <div className="card">
-                  <h3>Company Information</h3>
-                  {companyOverview.description && (
-                    <p className="description">{companyOverview.description}</p>
-                  )}
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="label">Market Cap:</span>
-                      <span className="value">{formatCurrency(companyOverview.marketCap, companyOverview.currency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Shares Outstanding:</span>
-                      <span className="value">{companyOverview.sharesOutstanding.toLocaleString()}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Country:</span>
-                      <span className="value">{companyOverview.country || 'N/A'}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Currency:</span>
-                      <span className="value">{companyOverview.currency}</span>
-                    </div>
-                    {companyOverview.lastReportedQuarter && (
-                      <div className="info-item">
-                        <span className="label">Last Reported Quarter:</span>
-                        <span className="value">{formatDate(companyOverview.lastReportedQuarter)}</span>
-                      </div>
-                    )}
-                    {companyOverview.nextEarningsDate && (
-                      <div className="info-item">
-                        <span className="label">Next Earnings Date:</span>
-                        <span className="value">{formatDate(companyOverview.nextEarningsDate)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {(companyOverview.yearlyRevenue || companyOverview.yearlyNetIncome || companyOverview.yearlyEbitda || companyOverview.yearlyEps) && (
-                  <div className="card">
-                    <h3>Yearly Fiscal Data</h3>
-                    <div className="info-grid">
-                      {companyOverview.yearlyRevenue && (
-                        <div className="info-item">
-                          <span className="label">Annual Revenue:</span>
-                          <span className="value">{formatCurrency(companyOverview.yearlyRevenue, companyOverview.currency)}</span>
-                        </div>
-                      )}
-                      {companyOverview.yearlyNetIncome && (
-                        <div className="info-item">
-                          <span className="label">Annual Net Income:</span>
-                          <span className="value">{formatCurrency(companyOverview.yearlyNetIncome, companyOverview.currency)}</span>
-                        </div>
-                      )}
-                      {companyOverview.yearlyEbitda && (
-                        <div className="info-item">
-                          <span className="label">Annual EBITDA:</span>
-                          <span className="value">{formatCurrency(companyOverview.yearlyEbitda, companyOverview.currency)}</span>
-                        </div>
-                      )}
-                      {companyOverview.yearlyEps && (
-                        <div className="info-item">
-                          <span className="label">Annual EPS:</span>
-                          <span className="value">{formatNumber(companyOverview.yearlyEps)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
-            )}
+          ) : !companyOverview ? (
+              <EmptyState
+                  icon={<Search/>}
+                  title="No data loaded"
+                  description="Enter a ticker above or use the command palette (⌘K)."
+              />
+          ) : (
+              <>
+                  <Card>
+                      <CardContent className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:justify-between">
+                          <div className="space-y-1">
+                              <div className="flex items-baseline gap-3">
+                                  <h2 className="font-mono text-2xl font-bold tracking-tight">
+                                      {companyOverview.symbol}
+                                  </h2>
+                                  <span className="text-base text-[color:var(--color-fg-muted)]">
+                    {companyOverview.name}
+                  </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                  {companyOverview.sector && <Badge variant="outline">{companyOverview.sector}</Badge>}
+                                  {companyOverview.industry && <Badge variant="outline">{companyOverview.industry}</Badge>}
+                                  {companyOverview.exchange && <Badge variant="gradient">{companyOverview.exchange}</Badge>}
+                              </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm md:text-right">
+                              <div>
+                                  <div className="text-xs uppercase tracking-wider text-[color:var(--color-fg-subtle)]">
+                                      Market cap
+                                  </div>
+                                  <div className="font-mono font-semibold tabular-nums">
+                                      {formatCurrency(companyOverview.marketCap, companyOverview.currency)}
+                                  </div>
+                              </div>
+                              <div>
+                                  <div className="text-xs uppercase tracking-wider text-[color:var(--color-fg-subtle)]">
+                                      Currency
+                                  </div>
+                                  <div className="font-mono font-semibold">{companyOverview.currency}</div>
+                              </div>
+                          </div>
+                      </CardContent>
+                  </Card>
 
-            {activeTab === 'statements' && financialStatements && (
-              <div className="statements-section">
-                <div className="card">
-                  <h3>Income Statement</h3>
-                  <div className="statement-date">
-                    As of {formatDate(financialStatements.incomeStatement.fiscalDateEnding)}
-                  </div>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="label">Total Revenue:</span>
-                      <span className="value">{formatCurrency(financialStatements.incomeStatement.totalRevenue, financialStatements.incomeStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Gross Profit:</span>
-                      <span className="value">{formatCurrency(financialStatements.incomeStatement.grossProfit, financialStatements.incomeStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Operating Income:</span>
-                      <span className="value">{formatCurrency(financialStatements.incomeStatement.operatingIncome, financialStatements.incomeStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Net Income:</span>
-                      <span className="value">{formatCurrency(financialStatements.incomeStatement.netIncome, financialStatements.incomeStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">EBITDA:</span>
-                      <span className="value">{formatCurrency(financialStatements.incomeStatement.ebitda, financialStatements.incomeStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">EPS:</span>
-                      <span className="value">{formatNumber(financialStatements.incomeStatement.eps)}</span>
-                    </div>
-                  </div>
-                </div>
+                  <Tabs value={tab} onValueChange={onTabChange}>
+                      <TabsList className="flex flex-wrap">
+                          <TabsTrigger value="overview">Overview</TabsTrigger>
+                          <TabsTrigger value="statements">Statements</TabsTrigger>
+                          <TabsTrigger value="valuation">Valuation</TabsTrigger>
+                          <TabsTrigger value="history">History</TabsTrigger>
+                          <TabsTrigger value="chart">Chart</TabsTrigger>
+                      </TabsList>
 
-                <div className="card">
-                  <h3>Balance Sheet</h3>
-                  <div className="statement-date">
-                    As of {formatDate(financialStatements.balanceSheet.fiscalDateEnding)}
-                  </div>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="label">Total Assets:</span>
-                      <span className="value">{formatCurrency(financialStatements.balanceSheet.totalAssets, financialStatements.balanceSheet.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Total Liabilities:</span>
-                      <span className="value">{formatCurrency(financialStatements.balanceSheet.totalLiabilities, financialStatements.balanceSheet.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Shareholder Equity:</span>
-                      <span className="value">{formatCurrency(financialStatements.balanceSheet.totalShareholderEquity, financialStatements.balanceSheet.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Cash & Equivalents:</span>
-                      <span className="value">{formatCurrency(financialStatements.balanceSheet.cashAndCashEquivalents, financialStatements.balanceSheet.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Long Term Debt:</span>
-                      <span className="value">{formatCurrency(financialStatements.balanceSheet.longTermDebt, financialStatements.balanceSheet.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Short Term Debt:</span>
-                      <span className="value">{formatCurrency(financialStatements.balanceSheet.shortTermDebt, financialStatements.balanceSheet.reportedCurrency)}</span>
-                    </div>
-                  </div>
-                </div>
+                      <TabsContent value="overview" className="grid gap-4 md:grid-cols-2">
+                          <Card>
+                              <CardHeader>
+                                  <CardTitle className="text-base">Company</CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-1">
+                                  {companyOverview.description && (
+                                      <p className="mb-3 text-sm text-[color:var(--color-fg-muted)] line-clamp-6">
+                                          {companyOverview.description}
+                                      </p>
+                                  )}
+                                  <MetricRow label="Shares outstanding" value={companyOverview.sharesOutstanding.toLocaleString()}/>
+                                  <MetricRow label="Country" value={companyOverview.country || '—'}/>
+                                  {companyOverview.lastReportedQuarter && (
+                                      <MetricRow label="Last reported quarter" value={formatDate(companyOverview.lastReportedQuarter)}/>
+                                  )}
+                                  {companyOverview.nextEarningsDate && (
+                                      <MetricRow label="Next earnings" value={formatDate(companyOverview.nextEarningsDate)}/>
+                                  )}
+                              </CardContent>
+                          </Card>
 
-                <div className="card">
-                  <h3>Cash Flow Statement</h3>
-                  <div className="statement-date">
-                    As of {formatDate(financialStatements.cashFlowStatement.fiscalDateEnding)}
-                  </div>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="label">Operating Cash Flow:</span>
-                      <span className="value">{formatCurrency(financialStatements.cashFlowStatement.operatingCashflow, financialStatements.cashFlowStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Capital Expenditures:</span>
-                      <span className="value">{formatCurrency(financialStatements.cashFlowStatement.capitalExpenditures, financialStatements.cashFlowStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Free Cash Flow:</span>
-                      <span className="value">{formatCurrency(financialStatements.cashFlowStatement.freeCashFlow, financialStatements.cashFlowStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Cash Flow from Investment:</span>
-                      <span className="value">{formatCurrency(financialStatements.cashFlowStatement.cashflowFromInvestment, financialStatements.cashFlowStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Cash Flow from Financing:</span>
-                      <span className="value">{formatCurrency(financialStatements.cashFlowStatement.cashflowFromFinancing, financialStatements.cashFlowStatement.reportedCurrency)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Net Change in Cash:</span>
-                      <span className="value">{formatCurrency(financialStatements.cashFlowStatement.netChangeInCash, financialStatements.cashFlowStatement.reportedCurrency)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+                          {(companyOverview.yearlyRevenue ||
+                              companyOverview.yearlyNetIncome ||
+                              companyOverview.yearlyEbitda ||
+                              companyOverview.yearlyEps) && (
+                              <Card>
+                                  <CardHeader>
+                                      <CardTitle className="text-base">Yearly fiscal</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="space-y-1">
+                                      {companyOverview.yearlyRevenue && (
+                                          <MetricRow label="Annual revenue" value={formatCurrency(companyOverview.yearlyRevenue, companyOverview.currency)}/>
+                                      )}
+                                      {companyOverview.yearlyNetIncome && (
+                                          <MetricRow label="Annual net income" value={formatCurrency(companyOverview.yearlyNetIncome, companyOverview.currency)}/>
+                                      )}
+                                      {companyOverview.yearlyEbitda && (
+                                          <MetricRow label="Annual EBITDA" value={formatCurrency(companyOverview.yearlyEbitda, companyOverview.currency)}/>
+                                      )}
+                                      {companyOverview.yearlyEps && (
+                                          <MetricRow label="Annual EPS" value={formatNumber(companyOverview.yearlyEps)}/>
+                                      )}
+                                  </CardContent>
+                              </Card>
+                          )}
+                      </TabsContent>
 
-            {activeTab === 'valuation' && valuationMetrics && (
-              <div className="valuation-section">
-                <div className="card">
-                  <h3>Valuation Ratios</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="label">Current Price:</span>
-                      <span className="value">{formatCurrency(valuationMetrics.currentPrice)}</span>
+                      <TabsContent value="statements">
+                          {financialStatements && (
+                              <div className="grid gap-4 lg:grid-cols-3">
+                                  <Card>
+                                      <CardHeader>
+                                          <CardTitle className="text-base">Income statement</CardTitle>
+                                          <CardDescription>
+                                              As of {formatDate(financialStatements.incomeStatement.fiscalDateEnding)}
+                                          </CardDescription>
+                                      </CardHeader>
+                                      <CardContent className="space-y-1">
+                                          <MetricRow label="Total revenue"
+                                                     value={formatCurrency(financialStatements.incomeStatement.totalRevenue, financialStatements.incomeStatement.reportedCurrency)}/>
+                                          <MetricRow label="Gross profit"
+                                                     value={formatCurrency(financialStatements.incomeStatement.grossProfit, financialStatements.incomeStatement.reportedCurrency)}/>
+                                          <MetricRow label="Operating income"
+                                                     value={formatCurrency(financialStatements.incomeStatement.operatingIncome, financialStatements.incomeStatement.reportedCurrency)}/>
+                                          <MetricRow label="Net income" value={formatCurrency(financialStatements.incomeStatement.netIncome, financialStatements.incomeStatement.reportedCurrency)}/>
+                                          <MetricRow label="EBITDA" value={formatCurrency(financialStatements.incomeStatement.ebitda, financialStatements.incomeStatement.reportedCurrency)}/>
+                                          <MetricRow label="EPS" value={formatNumber(financialStatements.incomeStatement.eps)}/>
+                                      </CardContent>
+                                  </Card>
+
+                                  <Card>
+                                      <CardHeader>
+                                          <CardTitle className="text-base">Balance sheet</CardTitle>
+                                          <CardDescription>
+                                              As of {formatDate(financialStatements.balanceSheet.fiscalDateEnding)}
+                                          </CardDescription>
+                                      </CardHeader>
+                                      <CardContent className="space-y-1">
+                                          <MetricRow label="Total assets" value={formatCurrency(financialStatements.balanceSheet.totalAssets, financialStatements.balanceSheet.reportedCurrency)}/>
+                                          <MetricRow label="Total liabilities"
+                                                     value={formatCurrency(financialStatements.balanceSheet.totalLiabilities, financialStatements.balanceSheet.reportedCurrency)}/>
+                                          <MetricRow label="Shareholder equity"
+                                                     value={formatCurrency(financialStatements.balanceSheet.totalShareholderEquity, financialStatements.balanceSheet.reportedCurrency)}/>
+                                          <MetricRow label="Cash & equivalents"
+                                                     value={formatCurrency(financialStatements.balanceSheet.cashAndCashEquivalents, financialStatements.balanceSheet.reportedCurrency)}/>
+                                          <MetricRow label="Long-term debt" value={formatCurrency(financialStatements.balanceSheet.longTermDebt, financialStatements.balanceSheet.reportedCurrency)}/>
+                                          <MetricRow label="Short-term debt" value={formatCurrency(financialStatements.balanceSheet.shortTermDebt, financialStatements.balanceSheet.reportedCurrency)}/>
+                                      </CardContent>
+                                  </Card>
+
+                                  <Card>
+                                      <CardHeader>
+                                          <CardTitle className="text-base">Cash flow</CardTitle>
+                                          <CardDescription>
+                                              As of {formatDate(financialStatements.cashFlowStatement.fiscalDateEnding)}
+                                          </CardDescription>
+                                      </CardHeader>
+                                      <CardContent className="space-y-1">
+                                          <MetricRow label="Operating cash flow"
+                                                     value={formatCurrency(financialStatements.cashFlowStatement.operatingCashflow, financialStatements.cashFlowStatement.reportedCurrency)}/>
+                                          <MetricRow label="Capital expenditures"
+                                                     value={formatCurrency(financialStatements.cashFlowStatement.capitalExpenditures, financialStatements.cashFlowStatement.reportedCurrency)}/>
+                                          <MetricRow label="Free cash flow"
+                                                     value={formatCurrency(financialStatements.cashFlowStatement.freeCashFlow, financialStatements.cashFlowStatement.reportedCurrency)}/>
+                                          <MetricRow label="Cash from investing"
+                                                     value={formatCurrency(financialStatements.cashFlowStatement.cashflowFromInvestment, financialStatements.cashFlowStatement.reportedCurrency)}/>
+                                          <MetricRow label="Cash from financing"
+                                                     value={formatCurrency(financialStatements.cashFlowStatement.cashflowFromFinancing, financialStatements.cashFlowStatement.reportedCurrency)}/>
+                                          <MetricRow label="Net change in cash"
+                                                     value={formatCurrency(financialStatements.cashFlowStatement.netChangeInCash, financialStatements.cashFlowStatement.reportedCurrency)}/>
+                                      </CardContent>
+                                  </Card>
+                              </div>
+                          )}
+                      </TabsContent>
+
+                      <TabsContent value="valuation">
+                          {valuationMetrics && (
+                              <div className="grid gap-4 md:grid-cols-2">
+                                  <Card>
+                                      <CardHeader>
+                                          <CardTitle className="text-base">Valuation ratios</CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="space-y-1">
+                                          <MetricRow label="Current price" value={formatCurrency(valuationMetrics.currentPrice)}/>
+                                          <MetricRow label="Market cap" value={formatCurrency(valuationMetrics.marketCap)}/>
+                                          <MetricRow label="Enterprise value" value={formatCurrency(valuationMetrics.enterpriseValue)}/>
+                                          <MetricRow label="P/E ratio" value={formatNumber(valuationMetrics.peRatio)}/>
+                                          <MetricRow label="P/B ratio" value={formatNumber(valuationMetrics.pbRatio)}/>
+                                          <MetricRow label="P/S ratio" value={formatNumber(valuationMetrics.psRatio)}/>
+                                          <MetricRow label="PEG ratio" value={formatNumber(valuationMetrics.pegRatio)}/>
+                                          <MetricRow label="EV / EBITDA" value={formatNumber(valuationMetrics.evToEbitda)}/>
+                                          <MetricRow label="Price to FCF" value={formatNumber(valuationMetrics.priceToFreeCashFlow)}/>
+                                      </CardContent>
+                                  </Card>
+                                  <Card>
+                                      <CardHeader>
+                                          <CardTitle className="text-base">Financial health</CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="space-y-1">
+                                          <MetricRow label="Debt to equity" value={formatNumber(valuationMetrics.debtToEquity)}/>
+                                          <MetricRow label="Current ratio" value={formatNumber(valuationMetrics.currentRatio)}/>
+                                          <MetricRow label="Quick ratio" value={formatNumber(valuationMetrics.quickRatio)}/>
+                                      </CardContent>
+                                  </Card>
+                                  <Card>
+                                      <CardHeader>
+                                          <CardTitle className="text-base">Profitability</CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="space-y-1">
+                                          <MetricRow label="ROE" value={formatPercent(valuationMetrics.returnOnEquity)}/>
+                                          <MetricRow label="ROA" value={formatPercent(valuationMetrics.returnOnAssets)}/>
+                                          <MetricRow label="Profit margin" value={formatPercent(valuationMetrics.profitMargin)}/>
+                                          <MetricRow label="Operating margin" value={formatPercent(valuationMetrics.operatingMargin)}/>
+                                      </CardContent>
+                                  </Card>
+                                  <Card>
+                                      <CardHeader>
+                                          <CardTitle className="text-base">Dividends</CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="space-y-1">
+                                          <MetricRow label="Dividend yield" value={formatPercent(valuationMetrics.dividendYield)}/>
+                                          <MetricRow label="Payout ratio" value={formatPercent(valuationMetrics.payoutRatio)}/>
+                                      </CardContent>
+                                  </Card>
+                              </div>
+                          )}
+                      </TabsContent>
+
+                      <TabsContent value="history" className="space-y-4">
+                          {incomeStatements.length > 0 && (
+                              <Card className="overflow-hidden">
+                                  <CardHeader>
+                                      <CardTitle className="text-base">Income statement history</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="p-0">
+                                      <Table>
+                                          <TableHeader>
+                                              <TableRow>
+                                                  <TableHead>Date</TableHead>
+                                                  <TableHead className="text-right">Revenue</TableHead>
+                                                  <TableHead className="text-right">Gross profit</TableHead>
+                                                  <TableHead className="text-right">Operating income</TableHead>
+                                                  <TableHead className="text-right">Net income</TableHead>
+                                                  <TableHead className="text-right">EPS</TableHead>
+                                              </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                              {incomeStatements.map((stmt, idx) => (
+                                                  <TableRow key={idx}>
+                                                      <TableCell className="font-mono">{formatDate(stmt.fiscalDateEnding)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.totalRevenue, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.grossProfit, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.operatingIncome, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.netIncome, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatNumber(stmt.eps)}</TableCell>
+                                                  </TableRow>
+                                              ))}
+                                          </TableBody>
+                                      </Table>
+                                  </CardContent>
+                              </Card>
+                          )}
+
+                          {balanceSheets.length > 0 && (
+                              <Card className="overflow-hidden">
+                                  <CardHeader>
+                                      <CardTitle className="text-base">Balance sheet history</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="p-0">
+                                      <Table>
+                                          <TableHeader>
+                                              <TableRow>
+                                                  <TableHead>Date</TableHead>
+                                                  <TableHead className="text-right">Total assets</TableHead>
+                                                  <TableHead className="text-right">Total liabilities</TableHead>
+                                                  <TableHead className="text-right">Shareholder equity</TableHead>
+                                                  <TableHead className="text-right">Cash</TableHead>
+                                                  <TableHead className="text-right">Long-term debt</TableHead>
+                                              </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                              {balanceSheets.map((stmt, idx) => (
+                                                  <TableRow key={idx}>
+                                                      <TableCell className="font-mono">{formatDate(stmt.fiscalDateEnding)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.totalAssets, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.totalLiabilities, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.totalShareholderEquity, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.cashAndCashEquivalents, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.longTermDebt, stmt.reportedCurrency)}</TableCell>
+                                                  </TableRow>
+                                              ))}
+                                          </TableBody>
+                                      </Table>
+                                  </CardContent>
+                              </Card>
+                          )}
+
+                          {cashFlowStatements.length > 0 && (
+                              <Card className="overflow-hidden">
+                                  <CardHeader>
+                                      <CardTitle className="text-base">Cash flow history</CardTitle>
+                                  </CardHeader>
+                                  <CardContent className="p-0">
+                                      <Table>
+                                          <TableHeader>
+                                              <TableRow>
+                                                  <TableHead>Date</TableHead>
+                                                  <TableHead className="text-right">Operating CF</TableHead>
+                                                  <TableHead className="text-right">CapEx</TableHead>
+                                                  <TableHead className="text-right">Free CF</TableHead>
+                                                  <TableHead className="text-right">Investing</TableHead>
+                                                  <TableHead className="text-right">Financing</TableHead>
+                                              </TableRow>
+                                          </TableHeader>
+                                          <TableBody>
+                                              {cashFlowStatements.map((stmt, idx) => (
+                                                  <TableRow key={idx}>
+                                                      <TableCell className="font-mono">{formatDate(stmt.fiscalDateEnding)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.operatingCashflow, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.capitalExpenditures, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.freeCashFlow, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.cashflowFromInvestment, stmt.reportedCurrency)}</TableCell>
+                                                      <TableCell className="text-right font-mono tabular-nums">{formatCurrency(stmt.cashflowFromFinancing, stmt.reportedCurrency)}</TableCell>
+                                                  </TableRow>
+                                              ))}
+                                          </TableBody>
+                                      </Table>
+                                  </CardContent>
+                              </Card>
+                          )}
+                      </TabsContent>
+
+                      <TabsContent value="chart">
+                          <Card>
+                              <CardHeader className="gap-3 sm:flex-row sm:items-end sm:justify-between">
+                                  <div>
+                                      <CardTitle className="text-base">Price chart</CardTitle>
+                                      <CardDescription>Period and interval are passed through to the data provider.</CardDescription>
+                                  </div>
+                                  <div className="flex flex-wrap items-end gap-2">
+                                      <div className="space-y-1">
+                                          <label className="text-xs uppercase tracking-wider text-[color:var(--color-fg-subtle)]">Period</label>
+                                          <Select value={chartPeriod} onValueChange={(v) => {
+                                              setChartPeriod(v);
+                                              setChartLoaded(false);
+                                          }}>
+                                              <SelectTrigger className="w-28"><SelectValue/></SelectTrigger>
+                                              <SelectContent>
+                                                  {PERIODS.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                                              </SelectContent>
+                                          </Select>
                     </div>
-                    <div className="info-item">
-                      <span className="label">Market Cap:</span>
-                      <span className="value">{formatCurrency(valuationMetrics.marketCap)}</span>
+                                      <div className="space-y-1">
+                                          <label className="text-xs uppercase tracking-wider text-[color:var(--color-fg-subtle)]">Interval</label>
+                                          <Select value={chartInterval} onValueChange={(v) => {
+                                              setChartInterval(v);
+                                              setChartLoaded(false);
+                                          }}>
+                                              <SelectTrigger className="w-28"><SelectValue/></SelectTrigger>
+                                              <SelectContent>
+                                                  {INTERVALS.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+                                              </SelectContent>
+                                          </Select>
                     </div>
-                    <div className="info-item">
-                      <span className="label">Enterprise Value:</span>
-                      <span className="value">{formatCurrency(valuationMetrics.enterpriseValue)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">P/E Ratio:</span>
-                      <span className="value">{formatNumber(valuationMetrics.peRatio)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">P/B Ratio:</span>
-                      <span className="value">{formatNumber(valuationMetrics.pbRatio)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">P/S Ratio:</span>
-                      <span className="value">{formatNumber(valuationMetrics.psRatio)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">PEG Ratio:</span>
-                      <span className="value">{formatNumber(valuationMetrics.pegRatio)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">EV/EBITDA:</span>
-                      <span className="value">{formatNumber(valuationMetrics.evToEbitda)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Price to FCF:</span>
-                      <span className="value">{formatNumber(valuationMetrics.priceToFreeCashFlow)}</span>
-                    </div>
+                                      <Button onClick={fetchChartData} disabled={chartLoading}>
+                                          {chartLoading ? <RefreshCw className="h-4 w-4 animate-spin"/> : <RefreshCw className="h-4 w-4"/>}
+                                          Update
+                                      </Button>
                   </div>
-                </div>
-
-                <div className="card">
-                  <h3>Financial Health</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="label">Debt to Equity:</span>
-                      <span className="value">{formatNumber(valuationMetrics.debtToEquity)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Current Ratio:</span>
-                      <span className="value">{formatNumber(valuationMetrics.currentRatio)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Quick Ratio:</span>
-                      <span className="value">{formatNumber(valuationMetrics.quickRatio)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card">
-                  <h3>Profitability</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="label">ROE:</span>
-                      <span className="value">{formatPercent(valuationMetrics.returnOnEquity)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">ROA:</span>
-                      <span className="value">{formatPercent(valuationMetrics.returnOnAssets)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Profit Margin:</span>
-                      <span className="value">{formatPercent(valuationMetrics.profitMargin)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Operating Margin:</span>
-                      <span className="value">{formatPercent(valuationMetrics.operatingMargin)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card">
-                  <h3>Dividends</h3>
-                  <div className="info-grid">
-                    <div className="info-item">
-                      <span className="label">Dividend Yield:</span>
-                      <span className="value">{formatPercent(valuationMetrics.dividendYield)}</span>
-                    </div>
-                    <div className="info-item">
-                      <span className="label">Payout Ratio:</span>
-                      <span className="value">{formatPercent(valuationMetrics.payoutRatio)}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'history' && (
-              <div className="history-section">
-                {incomeStatements.length > 0 && (
-                  <div className="card">
-                    <h3>Income Statement History</h3>
-                    <div className="table-container">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Revenue</th>
-                            <th>Gross Profit</th>
-                            <th>Operating Income</th>
-                            <th>Net Income</th>
-                            <th>EPS</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {incomeStatements.map((stmt, idx) => (
-                            <tr key={idx}>
-                              <td>{formatDate(stmt.fiscalDateEnding)}</td>
-                              <td>{formatCurrency(stmt.totalRevenue, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.grossProfit, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.operatingIncome, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.netIncome, stmt.reportedCurrency)}</td>
-                              <td>{formatNumber(stmt.eps)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {balanceSheets.length > 0 && (
-                  <div className="card">
-                    <h3>Balance Sheet History</h3>
-                    <div className="table-container">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Total Assets</th>
-                            <th>Total Liabilities</th>
-                            <th>Shareholder Equity</th>
-                            <th>Cash</th>
-                            <th>Long Term Debt</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {balanceSheets.map((stmt, idx) => (
-                            <tr key={idx}>
-                              <td>{formatDate(stmt.fiscalDateEnding)}</td>
-                              <td>{formatCurrency(stmt.totalAssets, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.totalLiabilities, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.totalShareholderEquity, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.cashAndCashEquivalents, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.longTermDebt, stmt.reportedCurrency)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {cashFlowStatements.length > 0 && (
-                  <div className="card">
-                    <h3>Cash Flow Statement History</h3>
-                    <div className="table-container">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Date</th>
-                            <th>Operating Cash Flow</th>
-                            <th>CapEx</th>
-                            <th>Free Cash Flow</th>
-                            <th>Cash from Investing</th>
-                            <th>Cash from Financing</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {cashFlowStatements.map((stmt, idx) => (
-                            <tr key={idx}>
-                              <td>{formatDate(stmt.fiscalDateEnding)}</td>
-                              <td>{formatCurrency(stmt.operatingCashflow, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.capitalExpenditures, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.freeCashFlow, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.cashflowFromInvestment, stmt.reportedCurrency)}</td>
-                              <td>{formatCurrency(stmt.cashflowFromFinancing, stmt.reportedCurrency)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'chart' && (
-              <div className="chart-section">
-                <div className="card">
-                  <div className="chart-controls">
-                    <div className="control-group">
-                      <label>Period:</label>
-                      <select
-                        value={chartPeriod}
-                        onChange={(e) => {
-                          setChartPeriod(e.target.value);
-                          setChartLoaded(false);
-                        }}
-                        disabled={chartLoading}
-                      >
-                        <option value="1d">1 Day</option>
-                        <option value="5d">5 Days</option>
-                        <option value="1mo">1 Month</option>
-                        <option value="3mo">3 Months</option>
-                        <option value="6mo">6 Months</option>
-                        <option value="1y">1 Year</option>
-                        <option value="2y">2 Years</option>
-                        <option value="5y">5 Years</option>
-                        <option value="max">Max</option>
-                      </select>
-                    </div>
-                    <div className="control-group">
-                      <label>Interval:</label>
-                      <select
-                        value={chartInterval}
-                        onChange={(e) => {
-                          setChartInterval(e.target.value);
-                          setChartLoaded(false);
-                        }}
-                        disabled={chartLoading}
-                      >
-                        <option value="1m">1 Minute</option>
-                        <option value="5m">5 Minutes</option>
-                        <option value="15m">15 Minutes</option>
-                        <option value="30m">30 Minutes</option>
-                        <option value="1h">1 Hour</option>
-                        <option value="1d">1 Day</option>
-                        <option value="1wk">1 Week</option>
-                        <option value="1mo">1 Month</option>
-                      </select>
-                    </div>
-                    <button
-                      onClick={fetchChartData}
-                      disabled={chartLoading}
-                      className="fetch-button"
-                    >
-                      {chartLoading ? 'Loading...' : 'Update Chart'}
-                    </button>
-                  </div>
-
-                  {chartLoading && <div className="loading">Loading chart data...</div>}
-
-                  {!chartLoading && ohlcData.length > 0 && (
+                              </CardHeader>
+                              <CardContent>
+                                  {chartLoading ? (
+                                      <Skeleton className="h-96 w-full"/>
+                                  ) : ohlcData.length > 0 ? (
                     <StockChart data={ohlcData} symbol={symbol} />
+                                  ) : chartLoaded ? (
+                                      <EmptyState title="No data" description="No chart data for the selected period."/>
+                                  ) : (
+                                      <EmptyState title="Ready to load" description="Click Update to fetch chart data."/>
                   )}
-
-                  {!chartLoading && ohlcData.length === 0 && chartLoaded && (
-                    <div className="no-data">No chart data available for the selected period</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+                              </CardContent>
+                          </Card>
+                      </TabsContent>
+                  </Tabs>
         </>
       )}
     </div>
   );
-};
-
-export default FundamentalAnalysisPage;
+}
